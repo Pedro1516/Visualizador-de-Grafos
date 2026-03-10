@@ -80,7 +80,7 @@ Compilação:
 ```
 emcc main.c interface.c raylib/src/libraylib.web.a \
 -Iraylib/src \
--o grafo.html \
+-o docs/grafo.html \
 -s USE_GLFW=3 \
 -s ASYNCIFY \
 -s ALLOW_MEMORY_GROWTH=1 \
