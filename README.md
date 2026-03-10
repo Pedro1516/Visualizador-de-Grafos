@@ -83,7 +83,8 @@ emcc main.c interface.c raylib/src/libraylib.web.a \
 -o grafo.html \
 -s USE_GLFW=3 \
 -s ASYNCIFY \
--s ALLOW_MEMORY_GROWTH=1
+-s ALLOW_MEMORY_GROWTH=1 \
+--preload-file fonts
 ```
 
 Depois execute um servidor local:
