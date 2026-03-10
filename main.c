@@ -97,7 +97,11 @@ void add_vertice(Grafo *grafo, int posx, int posy, Color color)
 {
     if (grafo->quant_v + 1 > grafo->limit[0])
     {
-        grafo->vertices = (Vertice *)realloc(grafo->vertices, sizeof(Vertice) * ((grafo->limit[1] == 0) ? 10 : grafo->limit[1] * 2));
+        int novo_limite = (grafo->limit[0] == 0) ? 10 : grafo->limit[0] * 2;
+
+        grafo->vertices = realloc(grafo->vertices, sizeof(Vertice) * novo_limite);
+
+        grafo->limit[0] = novo_limite;
     }
 
     grafo->quant_v++;
@@ -111,7 +115,11 @@ void add_aresta(Grafo *grafo, int v1, int v2, int peso)
 {
     if (grafo->quant_a + 1 > grafo->limit[1])
     {
-        grafo->arestas = (Aresta *)realloc(grafo->arestas, sizeof(Aresta) * ((grafo->limit[1] == 0) ? 10 : grafo->limit[1] * 2));
+        int novo_limite = (grafo->limit[1] == 0) ? 10 : grafo->limit[1] * 2;
+
+        grafo->arestas = realloc(grafo->arestas, sizeof(Aresta) * novo_limite);
+
+        grafo->limit[1] = novo_limite;
     }
 
     grafo->quant_a++;
@@ -154,7 +162,7 @@ void desenha_grafo(Grafo *grafo, Font font, float zoom)
         for (int i = 0; i < grafo->quant_a; i++)
         {
             Aresta a = grafo->arestas[i];
-            DrawLineEx(a.startpos, a.endpos, 1, a.cor);
+            DrawLineEx(a.startpos, a.endpos, 2, a.cor);
         }
     }
 
@@ -670,7 +678,7 @@ int main()
     botoes[5] = create_button_rect((Rectangle){GetScreenWidth() - 250, 530, 150, 50}, RED, "DFS");
     botoes[6] = create_button_rect((Rectangle){GetScreenWidth() - 250, 630, 150, 50}, RED, "Limpar Animação");
 
-    // gerar_k_completo(grafo, 5);
+    //gerar_k_completo(grafo, 20);
 
     while (!WindowShouldClose())
     {
