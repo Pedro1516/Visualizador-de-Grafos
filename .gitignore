@@ -1,6 +1,5 @@
 # build
-*.wasm
-*.js
+
 *.o
 *.out
 *.a
