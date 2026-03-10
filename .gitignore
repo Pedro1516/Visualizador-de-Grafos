@@ -11,4 +11,4 @@ emsdk/
 .vscode/
 
 # raylib build
-raylib/build/
+raylib/
