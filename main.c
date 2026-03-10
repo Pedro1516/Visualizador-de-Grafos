@@ -661,7 +661,7 @@ int main()
         1,
     };
 
-    Font font = LoadFont("fonts/Oswald.ttf");
+    Font font = LoadFont("docs/fonts/Oswald.ttf");
     botoes[0] = create_button_rect((Rectangle){GetScreenWidth() - 250, 30, 150, 50}, RED, "Criar Vertice");
     botoes[1] = create_button_rect((Rectangle){GetScreenWidth() - 250, 130, 150, 50}, RED, "Criar Aresta");
     botoes[2] = create_button_rect((Rectangle){GetScreenWidth() - 250, 230, 150, 50}, RED, "Excluir");

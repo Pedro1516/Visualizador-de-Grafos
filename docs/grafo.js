@@ -71,7 +71,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /tmp/tmp5c0f3txh.js
+// include: /tmp/tmpufjza7g_.js
 
   if (!Module['expectedDataFileDownloads']) Module['expectedDataFileDownloads'] = 0;
   Module['expectedDataFileDownloads']++;
@@ -159,7 +159,8 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
       function assert(check, msg) {
         if (!check) throw new Error(msg);
       }
-Module['FS_createPath']("/", "fonts", true, true);
+Module['FS_createPath']("/", "docs", true, true);
+Module['FS_createPath']("/docs", "fonts", true, true);
 
     for (var file of metadata['files']) {
       var name = file['filename']
@@ -200,25 +201,25 @@ Module['FS_createPath']("/", "fonts", true, true);
     }
 
     }
-    loadPackage({"files": [{"filename": "/fonts/Oswald.ttf", "start": 0, "end": 169108}], "remote_package_size": 169108});
+    loadPackage({"files": [{"filename": "/docs/fonts/Oswald.ttf", "start": 0, "end": 169108}], "remote_package_size": 169108});
 
   })();
 
-// end include: /tmp/tmp5c0f3txh.js
-// include: /tmp/tmphbuuldfm.js
+// end include: /tmp/tmpufjza7g_.js
+// include: /tmp/tmp_6aa07he.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if ((typeof ENVIRONMENT_IS_WASM_WORKER != 'undefined' && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != 'undefined' && ENVIRONMENT_IS_AUDIO_WORKLET)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: /tmp/tmphbuuldfm.js
-// include: /tmp/tmp5k2lc5ni.js
+  // end include: /tmp/tmp_6aa07he.js
+// include: /tmp/tmpsmzjitif.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: /tmp/tmp5k2lc5ni.js
+  // end include: /tmp/tmpsmzjitif.js
 
 
 var arguments_ = [];

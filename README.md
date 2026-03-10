@@ -84,7 +84,7 @@ emcc main.c interface.c raylib/src/libraylib.web.a \
 -s USE_GLFW=3 \
 -s ASYNCIFY \
 -s ALLOW_MEMORY_GROWTH=1 \
---preload-file fonts
+--preload-file docs/fonts
 ```
 
 Depois execute um servidor local:
