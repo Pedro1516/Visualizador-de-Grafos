@@ -4,6 +4,14 @@
 #include <raymath.h>
 #include "interface.h"
 
+typedef struct
+{
+    int *dados;
+    int inicio;
+    int fim;
+    int quant_dados;
+} Fila;
+
 typedef struct aresta
 {
     Vector2 startpos;
@@ -30,12 +38,66 @@ typedef struct grafo
     int limit[2]; // memoria alocada para v e a. indice 0 para vertice e 1 para aresta
 } Grafo;
 
+typedef struct
+{
+    Fila *fila;
+    int *visitado;
+    int vertice_atual;
+    int aresta_index;
+
+    float timer;
+    float delay;
+
+    bool ativa;
+
+} BFSAnim;
+
+typedef struct
+{
+    int *pilha;
+    int topo;
+
+    int *visitado;
+    int *indice_aresta;
+
+    float timer;
+    float delay;
+
+    bool ativa;
+
+} DFSAnim;
+
+Fila *criar_fila(int quant_dados)
+{
+    Fila *fila = (Fila *)malloc(sizeof(Fila));
+    fila->dados = (int *)calloc(quant_dados, sizeof(int));
+    fila->quant_dados = 0;
+    fila->inicio = 0;
+    fila->fim = 0;
+    return fila;
+}
+
+void enfileirar(Fila *fila, int dado)
+{
+    fila->dados[fila->fim] = dado;
+    fila->fim++;
+    fila->quant_dados++;
+}
+
+int desenfileirar(Fila *fila)
+{
+    if (fila->inicio == fila->fim)
+        return -1;
+
+    fila->quant_dados--;
+    return fila->dados[fila->inicio++];
+}
+
 void add_vertice(Grafo *grafo, int posx, int posy, Color color)
 {
     if (grafo->quant_v + 1 > grafo->limit[0])
     {
-        grafo->vertices = (Vertice *)realloc(grafo->vertices, sizeof(Vertice) * (grafo->limit[0] + 10));
-        grafo->limit[0] += 10;
+        grafo->vertices = (Vertice *)realloc(grafo->vertices, sizeof(Vertice) * ((grafo->limit[1] == 0) ? 10 : grafo->limit[1] * 2));
     }
 
     grafo->quant_v++;
@@ -50,7 +112,6 @@ void add_aresta(Grafo *grafo, int v1, int v2, int peso)
     if (grafo->quant_a + 1 > grafo->limit[1])
     {
         grafo->arestas = (Aresta *)realloc(grafo->arestas, sizeof(Aresta) * ((grafo->limit[1] == 0) ? 10 : grafo->limit[1] * 2));
-        grafo->limit[1] += 10;
     }
 
     grafo->quant_a++;
@@ -167,8 +228,16 @@ void set_zoom(Camera2D *camera, Vector2 mousepoint, Vector2 mouseWorldPos)
     }
 }
 
-void set_target_camera(Camera2D *camera, bool moving_vertex, bool *moving_camera)
+void set_target_camera(Camera2D *camera, bool moving_vertex, bool *moving_camera, Vector2 mousepoint, Button **botoes, int quant_btn)
 {
+    for (int i = 0; i < quant_btn; i++)
+    {
+        if (CheckCollisionPointRec(mousepoint, botoes[i]->rect))
+        {
+            (*moving_camera) = false;
+            return;
+        }
+    }
     if (IsMouseButtonDown(MOUSE_LEFT_BUTTON) && !moving_vertex)
     {
         Vector2 delta = GetMouseDelta();
@@ -210,14 +279,8 @@ void check_collision_vertex(Grafo *grafo, bool *moving_vertex, Vector2 mouseWorl
     }
 }
 
-int select_vertex(Grafo *grafo, Vector2 mousepoint, int *vertices_selec)
+void select_vertex(Grafo *grafo, Vector2 mousepoint, int *vertices_selec)
 {
-    if (vertices_selec[0] != -1 && vertices_selec[1] != -1)
-    {
-        add_aresta(grafo, vertices_selec[0], vertices_selec[1], 0);
-        return 1;
-    }
-
     if (IsMouseButtonReleased(MOUSE_RIGHT_BUTTON))
     {
         for (int i = 0; i < grafo->quant_v; i++)
@@ -251,33 +314,23 @@ int select_vertex(Grafo *grafo, Vector2 mousepoint, int *vertices_selec)
     }
 
     if (vertices_selec[0] == -1 || vertices_selec[1] == -1)
-        return 0;
-
-    for (size_t i = 0; i < grafo->vertices[vertices_selec[0]].quant_a; i++)
-    {
-        for (size_t j = 0; j < grafo->vertices[vertices_selec[1]].quant_a; j++)
-        {
-            if (grafo->vertices[vertices_selec[0]].arestas[i] == grafo->vertices[vertices_selec[1]].arestas[j])
-            {
-                vertices_selec[0] = -1;
-                vertices_selec[1] = -1;
-                return 0;
-            }
-        }
-    }
-
-    return 0;
+        return;
 }
 
 void desenha_selecao_vertice(Grafo *grafo, int *vertices_selecionados)
 {
-    Circle v1 = grafo->vertices[vertices_selecionados[0]].v;
-    DrawCircleLines(v1.x, v1.y, v1.radius * 1.2, BLACK);
+    if (vertices_selecionados[0] != -1)
+    {
+        Circle v1 = grafo->vertices[vertices_selecionados[0]].v;
+        DrawCircleLines(v1.x, v1.y, v1.radius * 1.2, (Color){0, 0, 150, 255});
+    }
 
-    Circle v2 = grafo->vertices[vertices_selecionados[1]].v;
-    DrawCircleLines(v2.x, v2.y, v2.radius * 1.2, BLACK);
+    if (vertices_selecionados[1] != -1)
+    {
+        Circle v2 = grafo->vertices[vertices_selecionados[1]].v;
+        DrawCircleLines(v2.x, v2.y, v2.radius * 1.2, (Color){100, 0, 0, 255});
+    }
 }
-
 void excluir_aresta(Grafo *grafo, int aresta_idx)
 {
     if (aresta_idx < 0 || aresta_idx >= grafo->quant_a)
@@ -346,47 +399,250 @@ void excluir_vertice(Grafo *grafo, int vertice_idx)
     }
 }
 
-
-void gerar_k_completo(Grafo *grafo, int n) {
+void gerar_k_completo(Grafo *grafo, int n)
+{
     float raio_circulo = 1000.0f;
-    Vector2 centro = { 1000, 1000 };
+    Vector2 centro = {1000, 1000};
 
-    for (int i = 0; i < n; i++) {
+    for (int i = 0; i < n; i++)
+    {
         float theta = i * (2.0f * PI / n);
         float x = centro.x + raio_circulo * cosf(theta);
         float y = centro.y + raio_circulo * sinf(theta);
         add_vertice(grafo, x, y, GREEN);
     }
 
-    for (int i = 0; i < n; i++) {
-        for (int j = i + 1; j < n; j++) {
+    for (int i = 0; i < n; i++)
+    {
+        for (int j = i + 1; j < n; j++)
+        {
             add_aresta(grafo, i, j, GetRandomValue(1, 100));
         }
     }
 }
 
+int add_aresta_selec(Grafo *grafo, int *vertices_selec)
+{
+    if (vertices_selec[0] == -1 || vertices_selec[1] == -1)
+        return 0;
+
+    for (size_t i = 0; i < grafo->vertices[vertices_selec[0]].quant_a; i++)
+    {
+        for (size_t j = 0; j < grafo->vertices[vertices_selec[1]].quant_a; j++)
+        {
+            if (grafo->vertices[vertices_selec[0]].arestas[i] == grafo->vertices[vertices_selec[1]].arestas[j])
+            {
+                vertices_selec[0] = -1;
+                vertices_selec[1] = -1;
+                return 0;
+            }
+        }
+    }
+
+    if (vertices_selec[0] != -1 && vertices_selec[1] != -1)
+    {
+        add_aresta(grafo, vertices_selec[0], vertices_selec[1], 0);
+        return 1;
+    }
+
+    return 0;
+}
+void iniciar_dfs(Grafo *grafo, DFSAnim *dfs, int origem)
+{
+    dfs->pilha = malloc(sizeof(int) * grafo->quant_v);
+    dfs->visitado = calloc(grafo->quant_v, sizeof(int));
+    dfs->indice_aresta = calloc(grafo->quant_v, sizeof(int));
+
+    dfs->topo = 0;
+    dfs->pilha[dfs->topo] = origem;
+
+    dfs->visitado[origem] = 1;
+
+    dfs->timer = 0;
+    dfs->delay = 0.3f;
+
+    dfs->ativa = true;
+}
+
+void iniciar_bfs(Grafo *grafo, BFSAnim *bfs, int origem)
+{
+    bfs->fila = criar_fila(grafo->quant_v);
+    bfs->visitado = calloc(grafo->quant_v, sizeof(int));
+
+    bfs->visitado[origem] = 1;
+    enfileirar(bfs->fila, origem);
+
+    bfs->vertice_atual = -1;
+    bfs->aresta_index = 0;
+
+    bfs->timer = 0;
+    bfs->delay = 0.3f;
+
+    bfs->ativa = true;
+}
+
+void update_dfs(Grafo *grafo, DFSAnim *dfs)
+{
+    if (!dfs->ativa)
+        return;
+
+    dfs->timer += GetFrameTime();
+
+    if (dfs->timer < dfs->delay)
+        return;
+
+    dfs->timer = 0;
+
+    if (dfs->topo < 0)
+    {
+        dfs->ativa = false;
+        return;
+    }
+
+    int atual = dfs->pilha[dfs->topo];
+    Vertice *v = &grafo->vertices[atual];
+
+    if (dfs->indice_aresta[atual] >= v->quant_a)
+    {
+        dfs->topo--; // backtrack
+        return;
+    }
+
+    int aresta_idx = v->arestas[dfs->indice_aresta[atual]];
+    dfs->indice_aresta[atual]++;
+
+    Aresta *a = &grafo->arestas[aresta_idx];
+
+    int outro = (a->vertice[0] == atual) ? a->vertice[1] : a->vertice[0];
+
+    if (!dfs->visitado[outro])
+    {
+        dfs->visitado[outro] = 1;
+
+        a->cor = BLUE; // cor da DFS
+
+        dfs->topo++;
+        dfs->pilha[dfs->topo] = outro;
+    }
+}
+
+void update_bfs(Grafo *grafo, BFSAnim *bfs)
+{
+    if (!bfs->ativa)
+        return;
+
+    bfs->timer += GetFrameTime();
+
+    if (bfs->timer < bfs->delay)
+        return;
+
+    bfs->timer = 0;
+
+    if (bfs->vertice_atual == -1)
+    {
+        if (bfs->fila->quant_dados == 0)
+        {
+            bfs->ativa = false;
+            return;
+        }
+
+        bfs->vertice_atual = desenfileirar(bfs->fila);
+        bfs->aresta_index = 0;
+    }
+
+    Vertice *v = &grafo->vertices[bfs->vertice_atual];
+
+    if (bfs->aresta_index >= v->quant_a)
+    {
+        bfs->vertice_atual = -1;
+        return;
+    }
+
+    int aresta_idx = v->arestas[bfs->aresta_index];
+    Aresta *a = &grafo->arestas[aresta_idx];
+
+    int outro = (a->vertice[0] == bfs->vertice_atual) ? a->vertice[1] : a->vertice[0];
+
+    if (!bfs->visitado[outro])
+    {
+        bfs->visitado[outro] = 1;
+        a->cor = RED;
+        enfileirar(bfs->fila, outro);
+    }
+
+    bfs->aresta_index++;
+}
+
+int limpar_animacao_bfs(BFSAnim *bfs, Grafo *grafo)
+{
+    for (int i = 0; i < grafo->quant_a; i++)
+    {
+        if (grafo->arestas[i].cor.r != 0)
+        {
+            grafo->arestas[i].cor = BLACK;
+        }
+    }
+
+    free(bfs->fila->dados);
+    free(bfs->fila);
+    free(bfs->visitado);
+    bfs->ativa = false;
+    return 1;
+}
+
+int limpar_animacao_dfs(DFSAnim *dfs, Grafo *grafo)
+{
+    for (int i = 0; i < grafo->quant_a; i++)
+    {
+        if (grafo->arestas[i].cor.b != 0)
+        {
+            grafo->arestas[i].cor = BLACK;
+        }
+    }
+
+    free(dfs->pilha);
+    free(dfs->visitado);
+    dfs->ativa = false;
+    return 1;
+}
+
+void limpar_animacao(Grafo *grafo, BFSAnim *bfs, DFSAnim *dfs)
+{
+    if (bfs->ativa)
+        limpar_animacao_bfs(bfs, grafo);
+
+    if (dfs->ativa)
+        limpar_animacao_dfs(dfs, grafo);
+}
+
 int main()
 {
+    int quant_btn = 7;
+
     Grafo *grafo = (Grafo *)malloc(sizeof(Grafo));
-    Button **botoes = (Button **)malloc(sizeof(Button *) * 5);
+    Button **botoes = (Button **)malloc(sizeof(Button *) * quant_btn);
     criar_grafo(grafo);
+    BFSAnim bfs_anim;
+    bfs_anim.ativa = false;
+    DFSAnim dfs_anim;
+    dfs_anim.ativa = false;
 
-    // add_vertice(grafo, 100, 150, GREEN);
-    // add_vertice(grafo, 200, 150, GREEN);
-    // add_vertice(grafo, 150, 50, GREEN);
-    // add_vertice(grafo, 100, 250, GREEN);
-    // add_vertice(grafo, 200, 250, GREEN);
+    add_vertice(grafo, 50, 70, GREEN);
+    add_vertice(grafo, 250, 70, GREEN);
+    add_vertice(grafo, 270, 250, GREEN);
+    add_vertice(grafo, 30, 250, GREEN);
+    add_vertice(grafo, 150, 350, GREEN);
 
-    // add_aresta(grafo, 0, 1, 10);
-    // add_aresta(grafo, 0, 2, 10);
-    // add_aresta(grafo, 0, 3, 10);
-    // add_aresta(grafo, 0, 4, 10);
-    // add_aresta(grafo, 1, 2, 20);
-    // add_aresta(grafo, 1, 3, 30);
-    // add_aresta(grafo, 1, 4, 30);
-    // add_aresta(grafo, 2, 3, 30);
-    // add_aresta(grafo, 2, 4, 30);
-    // add_aresta(grafo, 3, 4, 30);
+    add_aresta(grafo, 0, 1, 10);
+    add_aresta(grafo, 0, 2, 10);
+    add_aresta(grafo, 0, 3, 10);
+    add_aresta(grafo, 0, 4, 10);
+    add_aresta(grafo, 1, 2, 20);
+    add_aresta(grafo, 1, 3, 30);
+    add_aresta(grafo, 1, 4, 30);
+    add_aresta(grafo, 2, 3, 30);
+    add_aresta(grafo, 2, 4, 30);
+    add_aresta(grafo, 3, 4, 30);
 
     bool moving_vertex = false;
     bool moving_cam = false;
@@ -394,9 +650,9 @@ int main()
     int vertices_selecionados[2] = {-1, -1};
 
     SetConfigFlags(FLAG_MSAA_4X_HINT);
-    InitWindow(600, 800, "Grafo");
-    SetTargetFPS(60);
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    InitWindow(1280, 720, "Grafo");
+    SetTargetFPS(60);
 
     Camera2D camera = {
         (Vector2){.0f, .0f},
@@ -406,12 +662,15 @@ int main()
     };
 
     Font font = LoadFont("fonts/Oswald.ttf");
-    botoes[0] = create_button_rect((Rectangle){GetScreenWidth() - 150, 150, 100, 50}, RED, "Criar Vertice");
-    botoes[1] = create_button_rect((Rectangle){GetScreenWidth() - 150, 230, 100, 50}, RED, "Excluir");
-    botoes[2] = create_button_rect((Rectangle){GetScreenWidth() - 150, 310, 100, 50}, RED, "Editar Peso");
+    botoes[0] = create_button_rect((Rectangle){GetScreenWidth() - 250, 30, 150, 50}, RED, "Criar Vertice");
+    botoes[1] = create_button_rect((Rectangle){GetScreenWidth() - 250, 130, 150, 50}, RED, "Criar Aresta");
+    botoes[2] = create_button_rect((Rectangle){GetScreenWidth() - 250, 230, 150, 50}, RED, "Excluir");
+    botoes[3] = create_button_rect((Rectangle){GetScreenWidth() - 250, 330, 150, 50}, RED, "Editar Peso");
+    botoes[4] = create_button_rect((Rectangle){GetScreenWidth() - 250, 430, 150, 50}, RED, "BFS");
+    botoes[5] = create_button_rect((Rectangle){GetScreenWidth() - 250, 530, 150, 50}, RED, "DFS");
+    botoes[6] = create_button_rect((Rectangle){GetScreenWidth() - 250, 630, 150, 50}, RED, "Limpar Animação");
 
-
-    gerar_k_completo(grafo, 5);
+    // gerar_k_completo(grafo, 5);
 
     while (!WindowShouldClose())
     {
@@ -421,27 +680,55 @@ int main()
         if (moving_cam == false)
             check_collision_vertex(grafo, &moving_vertex, mouseWorldPos, &vertice_movendo_atual);
 
-        set_target_camera(&camera, moving_vertex, &moving_cam);
+        if (IsWindowResized())
+            for (size_t i = 0; i < quant_btn; i++)
+            {
+                botoes[i]->rect.x = GetScreenWidth() - 150;
+            }
+
+        set_target_camera(&camera, moving_vertex, &moving_cam, mousepoint, botoes, quant_btn);
         set_zoom(&camera, mousepoint, mouseWorldPos);
 
         if (!moving_cam)
-        {
-            if (onButtonClick(botoes[0], mousepoint)) // Add vertice
-            {
-                add_vertice(grafo, 100, 150, GREEN);
-            }
+            select_vertex(grafo, mouseWorldPos, vertices_selecionados);
 
-            if (onButtonClick(botoes[1], mousepoint) && vertices_selecionados[0] != -1) // Excluir vertice
-            {
-                excluir_vertice(grafo, vertices_selecionados[0]);
-                vertices_selecionados[0] = -1;
-            }
+        if (onButtonClick(botoes[0], mousepoint) && !moving_cam) // Add vertice
+        {
+            add_vertice(grafo, 100, 150, GREEN);
         }
 
-        if (select_vertex(grafo, mouseWorldPos, vertices_selecionados))
+        if (onButtonClick(botoes[1], mousepoint) && !moving_cam) // Add aresta
         {
+            add_aresta_selec(grafo, vertices_selecionados);
             vertices_selecionados[0] = -1;
             vertices_selecionados[1] = -1;
+        }
+
+        if (onButtonClick(botoes[2], mousepoint) && vertices_selecionados[0] != -1 && !moving_cam) // Excluir vertice
+        {
+            excluir_vertice(grafo, vertices_selecionados[0]);
+            vertices_selecionados[0] = -1;
+        }
+
+        if (onButtonClick(botoes[4], mousepoint) && vertices_selecionados[0] != -1 && !moving_cam) // bfs
+        {
+            limpar_animacao(grafo, &bfs_anim, &dfs_anim);
+
+            iniciar_bfs(grafo, &bfs_anim, vertices_selecionados[0]);
+            vertices_selecionados[0] = -1;
+        }
+
+        if (onButtonClick(botoes[5], mousepoint) && vertices_selecionados[0] != -1 && !moving_cam) // dfs
+        {
+            limpar_animacao(grafo, &bfs_anim, &dfs_anim);
+
+            iniciar_dfs(grafo, &dfs_anim, vertices_selecionados[0]);
+            vertices_selecionados[0] = -1;
+        }
+
+        if (onButtonClick(botoes[6], mousepoint) && !moving_cam) // limpar animacao
+        {
+            limpar_animacao(grafo, &bfs_anim, &dfs_anim);
         }
 
         BeginDrawing();
@@ -450,10 +737,12 @@ int main()
 
         desenha_grafo(grafo, font, camera.zoom);
         desenha_selecao_vertice(grafo, vertices_selecionados);
+        update_bfs(grafo, &bfs_anim);
+        update_dfs(grafo, &dfs_anim);
 
         EndMode2D();
 
-        for (size_t i = 0; i < 3; i++)
+        for (size_t i = 0; i < quant_btn; i++)
         {
             drawButton(botoes[i], 15);
         }
@@ -471,6 +760,7 @@ int main()
     {
         free(grafo->vertices[i].arestas);
     }
+
     free(grafo->vertices);
     free(grafo->arestas);
 

@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="utf-8">
+<title>Visualizador de Grafo</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+}
+
+body{
+background:#0f172a;
+font-family:system-ui,Arial;
+height:100vh;
+display:flex;
+align-items:center;
+justify-content:center;
+color:white;
+overflow:hidden;
+margin:0;
+}
+
+/* container principal */
+
+#app{
+display:flex;
+flex-direction:column;
+align-items:center;
+gap:20px;
+}
+
+/* título */
+
+h1{
+font-weight:500;
+letter-spacing:1px;
+opacity:0.9;
+}
+
+/* canvas */
+
+canvas{
+border-radius:12px;
+box-shadow:
+0 0 40px rgba(0,0,0,0.7),
+0 0 10px rgba(255,255,255,0.05) inset;
+background:black;
+width: 100vw;
+height: 100vh;
+display: block;
+}
+
+/* loading */
+
+#loading{
+display:flex;
+align-items:center;
+gap:12px;
+font-size:14px;
+opacity:0.8;
+}
+
+/* spinner */
+
+.spinner{
+width:18px;
+height:18px;
+border:3px solid rgba(255,255,255,0.2);
+border-top:3px solid white;
+border-radius:50%;
+animation:spin 1s linear infinite;
+}
+
+@keyframes spin{
+to{ transform:rotate(360deg); }
+}
+
+/* esconder quando carregar */
+
+.hidden{
+display:none;
+}
+
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+<h1>Visualização de Grafos</h1>
+
+<div id="loading">
+<div class="spinner"></div>
+<span>Carregando aplicação...</span>
+</div>
+
+<canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+
+</div>
+
+
+<script>
+
+const canvas = document.getElementById("canvas")
+const loading = document.getElementById("loading")
+
+var Module = {
+
+canvas: canvas,
+
+print: function(){},
+
+printErr: function(){},
+
+setStatus: function(text){
+
+if(text === "Running"){
+loading.classList.add("hidden")
+}
+
+},
+
+monitorRunDependencies: function(left){
+
+if(left === 0){
+loading.classList.add("hidden")
+}
+
+}
+
+}
+
+canvas.addEventListener("webglcontextlost",(e)=>{
+alert("WebGL context lost. Reload the page.")
+e.preventDefault()
+})
+
+</script>
+
+<script async src="grafo.js"></script>
+
+</body>
+</html>
