@@ -63,12 +63,10 @@ Button *create_button_rect(Rectangle rect, Color color, const char *text)
     return button;
 }
 
-// void draw_menu_superior(MenuSuperior menu)
-// {
-//     int font_size = 25;
-//     DrawRectangleRounded((Rectangle){10, 10, menu.width, menu.height}, 0.3, 0, BLACK);
-//     DrawTexture(menu.botao_voltar.texture, 20, menu.height / 2 - menu.botao_voltar.collision.height / 2 + 10, WHITE);
-//     DrawText(TextFormat("Questão %d/10", menu.pergunta_atual), menu.botao_voltar.collision.width + 25, menu.height / 2, font_size, WHITE);
-//     DrawTexture(menu.steak_img, GetScreenWidth() - 100, 15, WHITE);
-//     DrawText(TextFormat("%d", menu.streak), GetScreenWidth() - 60, menu.height / 2, font_size, WHITE);
-// }
+void desenha_menu_edicao_aresta(MenuEdicaoAresta *menu){
+    DrawRectangleRec(menu->rect_menu, (Color){50, 60, 90, 255});
+    DrawRectangleLines(menu->rect_menu.x, menu->rect_menu.y, menu->rect_menu.width, menu->rect_menu.height, (Color){100, 100, 100, 255});
+    DrawText("Editar Aresta", menu->rect_menu.x + 10, menu->rect_menu.y + 10, 20, WHITE);
+    DrawText("Peso:", menu->rect_menu.x + 10, menu->rect_menu.y + 50, 20, WHITE);
+    DrawRectangle(menu->rect_menu.x + 80, menu->rect_menu.y + 40, 100, 30, WHITE);
+}

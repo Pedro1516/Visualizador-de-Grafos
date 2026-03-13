@@ -35,7 +35,9 @@ typedef struct grafo
     Vertice *vertices;
     int quant_v;
     int quant_a;
-    int limit[2]; // memoria alocada para v e a. indice 0 para vertice e 1 para aresta
+    int direcionado; // 0 para não direcionado, 1 para direcionado
+    int limit[2];    // memoria alocada para v e a. indice 0 para vertice e 1 para aresta
+    int ponderado;
 } Grafo;
 
 typedef struct
@@ -144,7 +146,7 @@ void add_aresta(Grafo *grafo, int v1, int v2, int peso)
     grafo->vertices[v2].arestas[grafo->vertices[v2].quant_a - 1] = grafo->quant_a - 1;
 }
 
-void criar_grafo(Grafo *grafo)
+void criar_grafo(Grafo *grafo, int direcionado, int ponderado)
 {
     grafo->vertices = (Vertice *)malloc(sizeof(Vertice) * 10);
     grafo->quant_v = 0;
@@ -152,17 +154,48 @@ void criar_grafo(Grafo *grafo)
     grafo->arestas = (Aresta *)malloc(sizeof(Aresta) * 10);
     grafo->quant_a = 0;
     grafo->limit[1] = 10;
+    grafo->direcionado = direcionado;
+    grafo->ponderado = ponderado;
 }
 
 void desenha_grafo(Grafo *grafo, Font font, float zoom)
 {
-        for (int i = 0; i < grafo->quant_a; i++)
+    for (int i = 0; i < grafo->quant_a; i++)
+    {
+        Aresta *a = &grafo->arestas[i];
+
+        Vector2 start = {
+            grafo->vertices[a->vertice[0]].v.x,
+            grafo->vertices[a->vertice[0]].v.y};
+
+        Vector2 end = {
+            grafo->vertices[a->vertice[1]].v.x,
+            grafo->vertices[a->vertice[1]].v.y};
+
+        DrawLineEx(start, end, 2, a->cor);
+
+        if (grafo->direcionado)
         {
-            Aresta a = grafo->arestas[i];
-            DrawLineEx(a.startpos, a.endpos, 2, a.cor);
+            Vector2 direction = Vector2Subtract(end, start);
+
+            if (Vector2Length(direction) < 0.001f)
+                continue;
+
+            Vector2 normalized = Vector2Normalize(direction);
+
+            Vector2 tip = Vector2Add(end, Vector2Scale(normalized, -22));
+
+            // calcula o ângulo da aresta
+            float angle = atan2f(direction.y, direction.x) * RAD2DEG;
+
+            // compensação correta para DrawPoly
+            angle -= 90;
+
+            DrawPoly(tip, 3, 5, angle, BLACK);
         }
-    
-    if (zoom > 1.0f)
+    }
+
+    if (zoom > 1.0f && grafo->ponderado)
     {
         for (int i = 0; i < grafo->quant_a; i++)
         {
@@ -228,7 +261,7 @@ void set_zoom(Camera2D *camera, Vector2 mousepoint, Vector2 mouseWorldPos)
         // Zoom increment
         // Uses log scaling to provide consistent zoom speed
         float scale = 0.2f * wheel;
-        (*camera).zoom = Clamp(expf(logf((*camera).zoom) + scale), 0.125f, 64.0f);
+        (*camera).zoom = Clamp(expf(logf((*camera).zoom) + scale), 0.064f, 64.0f);
     }
 }
 
@@ -295,7 +328,7 @@ int select_aresta(Grafo *grafo, Vector2 mousepoint, int *aresta_selec)
                 if (*aresta_selec == i)
                 {
                     *aresta_selec = -1;
-                     grafo->arestas[i].cor = BLACK;
+                    grafo->arestas[i].cor = BLACK;
                     return 0;
                 }
                 else
@@ -459,14 +492,29 @@ void gerar_k_completo(Grafo *grafo, int n, float raio_circulo)
 
 int add_aresta_selec(Grafo *grafo, int *vertices_selec)
 {
-    if (vertices_selec[0] == -1 || vertices_selec[1] == -1)
+    int v1 = vertices_selec[0];
+    int v2 = vertices_selec[1];
+
+    if (v1 == -1 || v2 == -1)
         return 0;
 
-    for (size_t i = 0; i < grafo->vertices[vertices_selec[0]].quant_a; i++)
+    // verifica se já existe exatamente v1 -> v2
+    for (int i = 0; i < grafo->vertices[v1].quant_a; i++)
     {
-        for (size_t j = 0; j < grafo->vertices[vertices_selec[1]].quant_a; j++)
+        int a_idx = grafo->vertices[v1].arestas[i];
+        Aresta *a = &grafo->arestas[a_idx];
+
+        if (a->vertice[0] == v1 && a->vertice[1] == v2)
         {
-            if (grafo->vertices[vertices_selec[0]].arestas[i] == grafo->vertices[vertices_selec[1]].arestas[j])
+            vertices_selec[0] = -1;
+            vertices_selec[1] = -1;
+            return 0;
+        }
+
+        // se o grafo não for direcionado bloqueia também v2->v1
+        if (!grafo->direcionado)
+        {
+            if (a->vertice[0] == v2 && a->vertice[1] == v1)
             {
                 vertices_selec[0] = -1;
                 vertices_selec[1] = -1;
@@ -475,14 +523,14 @@ int add_aresta_selec(Grafo *grafo, int *vertices_selec)
         }
     }
 
-    if (vertices_selec[0] != -1 && vertices_selec[1] != -1)
-    {
-        add_aresta(grafo, vertices_selec[0], vertices_selec[1], 0);
-        return 1;
-    }
+    add_aresta(grafo, v1, v2, 0);
 
-    return 0;
+    vertices_selec[0] = -1;
+    vertices_selec[1] = -1;
+
+    return 1;
 }
+
 void iniciar_dfs(Grafo *grafo, DFSAnim *dfs, int origem)
 {
     dfs->pilha = malloc(sizeof(int) * grafo->quant_v);
@@ -548,8 +596,20 @@ void update_dfs(Grafo *grafo, DFSAnim *dfs)
     dfs->indice_aresta[atual]++;
 
     Aresta *a = &grafo->arestas[aresta_idx];
+    int outro;
+    if (grafo->direcionado)
+    {
+        if (a->vertice[0] != atual)
+        {
+            return;
+        }
 
-    int outro = (a->vertice[0] == atual) ? a->vertice[1] : a->vertice[0];
+        outro = a->vertice[1];
+    }
+    else
+    {
+        outro = (a->vertice[0] == atual) ? a->vertice[1] : a->vertice[0];
+    }
 
     if (!dfs->visitado[outro])
     {
@@ -597,7 +657,21 @@ void update_bfs(Grafo *grafo, BFSAnim *bfs)
     int aresta_idx = v->arestas[bfs->aresta_index];
     Aresta *a = &grafo->arestas[aresta_idx];
 
-    int outro = (a->vertice[0] == bfs->vertice_atual) ? a->vertice[1] : a->vertice[0];
+    int outro;
+    if (grafo->direcionado)
+    {
+        if (a->vertice[0] != bfs->vertice_atual)
+        {
+            bfs->aresta_index++;
+            return;
+        }
+
+        outro = a->vertice[1];
+    }
+    else
+    {
+        outro = (a->vertice[0] == bfs->vertice_atual) ? a->vertice[1] : a->vertice[0];
+    }
 
     if (!bfs->visitado[outro])
     {
@@ -654,31 +728,32 @@ void limpar_animacao(Grafo *grafo, BFSAnim *bfs, DFSAnim *dfs)
 int main()
 {
     int quant_btn = 8;
+    int screen_w = 1280;
+    int screen_h = 720;
 
     Grafo *grafo = (Grafo *)malloc(sizeof(Grafo));
     Button **botoes = (Button **)malloc(sizeof(Button *) * quant_btn);
-    criar_grafo(grafo);
+    criar_grafo(grafo, 1, 1);
     BFSAnim bfs_anim;
     bfs_anim.ativa = false;
     DFSAnim dfs_anim;
     dfs_anim.ativa = false;
 
-    // add_vertice(grafo, 50, 70, GREEN);
-    // add_vertice(grafo, 250, 70, GREEN);
-    // add_vertice(grafo, 270, 250, GREEN);
-    // add_vertice(grafo, 30, 250, GREEN);
-    // add_vertice(grafo, 150, 350, GREEN);
+    bool input_ativo_edicao_aresta = false;
 
-    // add_aresta(grafo, 0, 1, 10);
-    // add_aresta(grafo, 0, 2, 10);
-    // add_aresta(grafo, 0, 3, 10);
-    // add_aresta(grafo, 0, 4, 10);
-    // add_aresta(grafo, 1, 2, 20);
-    // add_aresta(grafo, 1, 3, 30);
-    // add_aresta(grafo, 1, 4, 30);
-    // add_aresta(grafo, 2, 3, 30);
-    // add_aresta(grafo, 2, 4, 30);
-    // add_aresta(grafo, 3, 4, 30);
+    MenuEdicaoAresta menu_edicao_aresta = {
+        .rect_menu = (Rectangle){
+            .height = 100,
+            .width = 200,
+            .x = screen_w - 470,
+            .y = 360},
+        .ativa = false,
+    };
+
+    menu_edicao_aresta.input.buffer = (char *)malloc(sizeof(char) * 6);
+    menu_edicao_aresta.input.buffer[5] = '\0';
+    menu_edicao_aresta.input.limit_char = 5;
+    menu_edicao_aresta.input.char_inserted = 0;
 
     bool moving_vertex = false;
     bool moving_cam = false;
@@ -686,9 +761,8 @@ int main()
     int vertices_selecionados[2] = {-1, -1};
     int aresta_selecionada = -1;
 
-    SetConfigFlags(FLAG_MSAA_4X_HINT);
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
-    InitWindow(1280, 720, "Grafo");
+    SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_WINDOW_RESIZABLE);
+    InitWindow(screen_w, screen_h, "Grafo");
     SetTargetFPS(60);
 
     Camera2D camera = {
@@ -731,12 +805,13 @@ int main()
         {
             int aresta_anterior = aresta_selecionada;
 
-            if(select_vertex(grafo, mouseWorldPos, vertices_selecionados))
+            if (select_vertex(grafo, mouseWorldPos, vertices_selecionados))
             {
-                    if (aresta_selecionada != -1){
-                        grafo->arestas[aresta_selecionada].cor = BLACK;
-                        aresta_selecionada = -1;
-                    }
+                if (aresta_selecionada != -1)
+                {
+                    grafo->arestas[aresta_selecionada].cor = BLACK;
+                    aresta_selecionada = -1;
+                }
             }
 
             if (select_aresta(grafo, mouseWorldPos, &aresta_selecionada) == 1)
@@ -779,6 +854,12 @@ int main()
             }
         }
 
+        if (onButtonClick(botoes[3], mousepoint) && aresta_selecionada != -1 && !moving_cam) // Editar peso
+        {
+            menu_edicao_aresta.ativa = true;
+            menu_edicao_aresta.rect_menu.x = GetScreenWidth() - 470;
+        }
+
         if (onButtonClick(botoes[4], mousepoint) && vertices_selecionados[0] != -1 && !moving_cam) // bfs
         {
             limpar_animacao(grafo, &bfs_anim, &dfs_anim);
@@ -804,9 +885,46 @@ int main()
         {
             free(grafo->vertices);
             free(grafo->arestas);
-            criar_grafo(grafo);
+            criar_grafo(grafo, 0, 0);
             int n = 120;
             gerar_k_completo(grafo, n, 50.f * n);
+        }
+
+        if (menu_edicao_aresta.ativa)
+        {
+            int key = 0;
+            int *char_inserted = &menu_edicao_aresta.input.char_inserted;
+            key = GetCharPressed();
+            while (key != 0)
+            {
+                if (key >= 48 && key <= 57 && (*char_inserted) < menu_edicao_aresta.input.limit_char)
+                {
+                    menu_edicao_aresta.input.buffer[*char_inserted] = key;
+                    (*char_inserted)++;
+                }
+                key = GetCharPressed();
+            }
+
+            if (IsKeyPressed(KEY_BACKSPACE))
+            {
+                if ((*char_inserted) > 0)
+                {
+                    menu_edicao_aresta.input.buffer[(*char_inserted) - 1] = '\0';
+                    (*char_inserted)--;
+                }
+            }
+
+            if (IsKeyPressed(KEY_ENTER))
+            {
+                grafo->arestas[aresta_selecionada].peso = atoi(menu_edicao_aresta.input.buffer);
+                (*char_inserted) = 0;
+                menu_edicao_aresta.ativa = false;
+                grafo->arestas[aresta_selecionada].cor = BLACK;
+                aresta_selecionada = -1;
+
+                for (size_t i = 0; i < menu_edicao_aresta.input.limit_char; i++)
+                    menu_edicao_aresta.input.buffer[i] = 0;
+            }
         }
 
         BeginDrawing();
@@ -819,6 +937,12 @@ int main()
         update_dfs(grafo, &dfs_anim);
 
         EndMode2D();
+
+        if (menu_edicao_aresta.ativa)
+        {
+            desenha_menu_edicao_aresta(&menu_edicao_aresta);
+            DrawText(menu_edicao_aresta.input.buffer, menu_edicao_aresta.rect_menu.x + 90, menu_edicao_aresta.rect_menu.y + 45, 20, BLACK);
+        }
 
         for (size_t i = 0; i < quant_btn; i++)
         {
@@ -841,6 +965,7 @@ int main()
 
     free(grafo->vertices);
     free(grafo->arestas);
+    free(menu_edicao_aresta.input.buffer);
 
     return 0;
 }

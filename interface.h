@@ -21,12 +21,18 @@ typedef struct
 
 typedef struct
 {
-    int height;
-    int width;
-    int pergunta_atual;
-    int streak;
-} MenuSuperior;
+    char *buffer;
+    int char_inserted;
+    int limit_char;
+} InputText;
 
+typedef struct
+{
+    Rectangle rect_menu;
+    Rectangle rect_input;
+    InputText input;
+    bool ativa;
+} MenuEdicaoAresta;
 
 bool onButtonClick(Button *button, Vector2 mousepoint);
 
@@ -34,3 +40,4 @@ void drawButton(Button *button, int font_size);
 
 Button *create_button_rect(Rectangle rect, Color color, const char *text);
 
+void desenha_menu_edicao_aresta(MenuEdicaoAresta *menu);
