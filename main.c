@@ -165,14 +165,49 @@ void desenha_grafo(Grafo *grafo, Font font, float zoom)
         Aresta *a = &grafo->arestas[i];
 
         Vector2 start = {
-            grafo->vertices[a->vertice[0]].v.x,
-            grafo->vertices[a->vertice[0]].v.y};
+    grafo->vertices[a->vertice[0]].v.x,
+    grafo->vertices[a->vertice[0]].v.y
+};
 
-        Vector2 end = {
-            grafo->vertices[a->vertice[1]].v.x,
-            grafo->vertices[a->vertice[1]].v.y};
+Vector2 end = {
+    grafo->vertices[a->vertice[1]].v.x,
+    grafo->vertices[a->vertice[1]].v.y
+};
 
-        DrawLineEx(start, end, 2, a->cor);
+Vector2 direction = Vector2Subtract(end, start);
+float len = Vector2Length(direction);
+
+if(len > 0.001f)
+{
+    Vector2 normalized = Vector2Normalize(direction);
+    Vector2 perp = (Vector2){-normalized.y, normalized.x};
+
+    // verifica se existe aresta contrária
+    int existe_contraria = 0;
+
+    for(int j = 0; j < grafo->vertices[a->vertice[1]].quant_a; j++)
+    {
+        int idx = grafo->vertices[a->vertice[1]].arestas[j];
+        Aresta *b = &grafo->arestas[idx];
+
+        if(b->vertice[0] == a->vertice[1] &&
+           b->vertice[1] == a->vertice[0])
+        {
+            existe_contraria = 1;
+            break;
+        }
+    }
+
+    if(existe_contraria)
+    {
+        float offset = 8;
+
+        start = Vector2Add(start, Vector2Scale(perp, offset));
+        end = Vector2Add(end, Vector2Scale(perp, offset));
+    }
+}
+
+DrawLineEx(start, end, 2, a->cor);
 
         if (grafo->direcionado)
         {
