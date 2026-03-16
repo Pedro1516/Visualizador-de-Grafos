@@ -63,10 +63,37 @@ Button *create_button_rect(Rectangle rect, Color color, const char *text)
     return button;
 }
 
-void desenha_menu_edicao_aresta(MenuEdicaoAresta *menu){
+MenuEdicao *criar_menu_edicao(char *titulo, char *label, Rectangle rect_menu, int limit_char)
+{
+    MenuEdicao *menu = (MenuEdicao *) malloc(sizeof(MenuEdicao));
+
+    menu->titulo = strdup(titulo);
+    menu->label = strdup(label);
+
+    menu->rect_menu = rect_menu;
+    menu->ativa = false;
+
+    menu->input.buffer = (char *)calloc(limit_char, sizeof(char));
+    menu->input.limit_char = limit_char;
+    menu->input.char_inserted = 0;
+
+    int tam_text_titulo = MeasureText(menu->titulo, 20);
+    int tam_text_label = MeasureText(menu->label, 20);
+    int tam_text = (tam_text_titulo > tam_text_label) ? tam_text_titulo : tam_text_label;
+
+    if (tam_text > menu->rect_menu.width)
+        menu->rect_menu.width = tam_text + 150;
+
+    return menu;
+}
+
+void desenha_menu_edicao(MenuEdicao *menu)
+{
     DrawRectangleRec(menu->rect_menu, (Color){50, 60, 90, 255});
     DrawRectangleLines(menu->rect_menu.x, menu->rect_menu.y, menu->rect_menu.width, menu->rect_menu.height, (Color){100, 100, 100, 255});
-    DrawText("Editar Aresta", menu->rect_menu.x + 10, menu->rect_menu.y + 10, 20, WHITE);
-    DrawText("Peso:", menu->rect_menu.x + 10, menu->rect_menu.y + 50, 20, WHITE);
-    DrawRectangle(menu->rect_menu.x + 80, menu->rect_menu.y + 40, 100, 30, WHITE);
+    DrawText(menu->titulo, menu->rect_menu.x + 10, menu->rect_menu.y + 10, 20, WHITE);
+    DrawText(menu->label, menu->rect_menu.x + 10, menu->rect_menu.y + 50, 20, WHITE);
+
+    int tam_label = MeasureText(menu->label, 20);
+    DrawRectangle(menu->rect_menu.x + tam_label + 20, menu->rect_menu.y + 40, 100, 30, WHITE);
 }

@@ -773,6 +773,135 @@ void destroy_grafo(Grafo *grafo)
     free(grafo);
 }
 
+void ler_entrada_menu(MenuEdicao *menu)
+{
+    int key = 0;
+    int *char_inserted = &menu->input.char_inserted;
+    key = GetCharPressed();
+    while (key != 0)
+    {
+        if (key >= 48 && key <= 57 && (*char_inserted) < menu->input.limit_char)
+        {
+            menu->input.buffer[*char_inserted] = key;
+            (*char_inserted)++;
+        }
+        key = GetCharPressed();
+    }
+
+    if (IsKeyPressed(KEY_BACKSPACE))
+    {
+        if ((*char_inserted) > 0)
+        {
+            menu->input.buffer[(*char_inserted) - 1] = '\0';
+            (*char_inserted)--;
+        }
+    }
+}
+
+void fechar_menu(MenuEdicao *menu, Vector2 mousepoint)
+{
+    if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        if (!CheckCollisionPointRec(mousepoint, menu->rect_menu)) // Clicou em algum lugar que não é menu
+            menu->ativa = false;
+}
+
+void importar_lista_adj(Grafo *grafo, const char *arquivo)
+{
+    FILE *fd = fopen(arquivo, "r");
+    if (!fd)
+        return;
+
+    int quant_v;
+    fscanf(fd, "%d\n", &quant_v);
+
+    // cria vertices
+    for (int i = 0; i < quant_v; i++)
+    {
+        float ang = i * (2 * PI / quant_v);
+
+        float x = 600 + 200 * cosf(ang);
+        float y = 400 + 200 * sinf(ang);
+
+        add_vertice(grafo, x, y, GREEN);
+    }
+
+    char linha[256];
+
+    while (fgets(linha, sizeof(linha), fd))
+    {
+        char *token = strtok(linha, " \n");
+
+        if (!token)
+            continue;
+
+        int v = atoi(token);
+
+        token = strtok(NULL, " \n");
+
+        while (token)
+        {
+            int adj = atoi(token);
+
+            if (grafo->direcionado)
+            {
+                add_aresta(grafo, v, adj, 0);
+            }
+            else
+            {
+                if (v < adj)
+                    add_aresta(grafo, v, adj, 0);
+            }
+
+            token = strtok(NULL, " \n");
+        }
+    }
+
+    fclose(fd);
+}
+
+void exportar_lista_adj(Grafo *grafo)
+{
+    FILE *fd = fopen("grafo.txt", "w");
+    if (fd == NULL)
+        return;
+
+    fprintf(fd, "%d \n", grafo->quant_v);
+
+    for (int i = 0; i < grafo->quant_v; i++)
+    {
+        fprintf(fd, "%d", i);
+
+        Vertice *v = &grafo->vertices[i];
+
+        for (int j = 0; j < v->quant_a; j++)
+        {
+            int a_idx = v->arestas[j];
+            Aresta *a = &grafo->arestas[a_idx];
+
+            int outro;
+
+            if (grafo->direcionado)
+            {
+                // só considera arestas que saem do vértice
+                if (a->vertice[0] != i)
+                    continue;
+
+                outro = a->vertice[1];
+            }
+            else
+            {
+                outro = (a->vertice[0] == i) ? a->vertice[1] : a->vertice[0];
+            }
+
+            fprintf(fd, " %d", outro);
+        }
+
+        fprintf(fd, "\n");
+    }
+
+    fclose(fd);
+}
+
 int main()
 {
     int quant_btn = 8;
@@ -786,22 +915,6 @@ int main()
     bfs_anim.ativa = false;
     DFSAnim dfs_anim;
     dfs_anim.ativa = false;
-
-    bool input_ativo_edicao_aresta = false;
-
-    MenuEdicaoAresta menu_edicao_aresta = {
-        .rect_menu = (Rectangle){
-            .height = 100,
-            .width = 200,
-            .x = screen_w - 470,
-            .y = 360},
-        .ativa = false,
-    };
-
-    menu_edicao_aresta.input.buffer = (char *)malloc(sizeof(char) * 6);
-    menu_edicao_aresta.input.buffer[5] = '\0';
-    menu_edicao_aresta.input.limit_char = 5;
-    menu_edicao_aresta.input.char_inserted = 0;
 
     bool moving_vertex = false;
     bool moving_cam = false;
@@ -819,6 +932,9 @@ int main()
         0,
         1,
     };
+
+    MenuEdicao *menu_edicao_aresta = criar_menu_edicao("Editar Peso", "Peso:", (Rectangle){screen_w - 470, 360, 200, 100}, 5);
+    MenuEdicao *menu_criacao_k_completo = criar_menu_edicao("Criar K Completo", "Quantidade de vértices:", (Rectangle){screen_w - 470, 460, 200, 100}, 3);
 
     Font font = LoadFont("docs/fonts/Oswald.ttf");
     botoes[0] = create_button_rect((Rectangle){GetScreenWidth() - 250, 30, 150, 50}, RED, "Criar Vertice");
@@ -904,8 +1020,9 @@ int main()
 
         if (onButtonClick(botoes[3], mousepoint) && aresta_selecionada != -1 && !moving_cam) // Editar peso
         {
-            menu_edicao_aresta.ativa = true;
-            menu_edicao_aresta.rect_menu.x = GetScreenWidth() - 470;
+            menu_criacao_k_completo->ativa = false;
+            menu_edicao_aresta->ativa = true;
+            menu_edicao_aresta->rect_menu.x = GetScreenWidth() - 470;
         }
 
         if (onButtonClick(botoes[4], mousepoint) && vertices_selecionados[0] != -1 && !moving_cam) // bfs
@@ -926,54 +1043,62 @@ int main()
 
         if (onButtonClick(botoes[6], mousepoint) && !moving_cam) // limpar animacao
         {
-            limpar_animacao(grafo, &bfs_anim, &dfs_anim);
+           
+             limpar_animacao(grafo, &bfs_anim, &dfs_anim);
         }
 
         if (onButtonClick(botoes[7], mousepoint) && !moving_cam) // gerar k completo
         {
-            destroy_grafo(grafo);
-            grafo = (Grafo *)malloc(sizeof(Grafo));
-            criar_grafo(grafo, 0, 0);
-            int n = 120;
-            gerar_k_completo(grafo, n, 50.f * n);
+            menu_criacao_k_completo->ativa = true;
+            menu_edicao_aresta->ativa = false;
+            menu_criacao_k_completo->rect_menu.x = GetScreenWidth() - 550;
         }
 
-        if (menu_edicao_aresta.ativa)
+        if (menu_criacao_k_completo->ativa)
         {
-            int key = 0;
-            int *char_inserted = &menu_edicao_aresta.input.char_inserted;
-            key = GetCharPressed();
-            while (key != 0)
-            {
-                if (key >= 48 && key <= 57 && (*char_inserted) < menu_edicao_aresta.input.limit_char)
-                {
-                    menu_edicao_aresta.input.buffer[*char_inserted] = key;
-                    (*char_inserted)++;
-                }
-                key = GetCharPressed();
-            }
-
-            if (IsKeyPressed(KEY_BACKSPACE))
-            {
-                if ((*char_inserted) > 0)
-                {
-                    menu_edicao_aresta.input.buffer[(*char_inserted) - 1] = '\0';
-                    (*char_inserted)--;
-                }
-            }
+            ler_entrada_menu(menu_criacao_k_completo);
 
             if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER))
             {
-                grafo->arestas[aresta_selecionada].peso = atoi(menu_edicao_aresta.input.buffer);
-                (*char_inserted) = 0;
-                menu_edicao_aresta.ativa = false;
-                grafo->arestas[aresta_selecionada].cor = BLACK;
-                aresta_selecionada = -1;
+                int n = atoi(menu_criacao_k_completo->input.buffer);
 
-                for (size_t i = 0; i < menu_edicao_aresta.input.limit_char; i++)
-                    menu_edicao_aresta.input.buffer[i] = 0;
+                destroy_grafo(grafo);
+                grafo = (Grafo *)malloc(sizeof(Grafo));
+                criar_grafo(grafo, 0, 0);
+                gerar_k_completo(grafo, n, 50.f * n);
+
+                menu_criacao_k_completo->ativa = false;
+                menu_criacao_k_completo->input.char_inserted = 0;
+
+                for (size_t i = 0; i < menu_criacao_k_completo->input.limit_char; i++)
+                    menu_criacao_k_completo->input.buffer[i] = 0;
             }
         }
+
+        if (menu_edicao_aresta->ativa)
+        {
+
+            ler_entrada_menu(menu_edicao_aresta);
+
+            if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER))
+            {
+                if (aresta_selecionada != -1)
+                {
+                    int peso = atoi(menu_edicao_aresta->input.buffer);
+                    grafo->arestas[aresta_selecionada].peso = peso;
+                    grafo->arestas[aresta_selecionada].cor = BLACK;
+                    aresta_selecionada = -1;
+                }
+
+                menu_edicao_aresta->ativa = false;
+                menu_edicao_aresta->input.char_inserted = 0;
+                for (size_t i = 0; i < menu_edicao_aresta->input.limit_char; i++)
+                    menu_edicao_aresta->input.buffer[i] = 0;
+            }
+        }
+
+        fechar_menu(menu_criacao_k_completo, mousepoint);
+        fechar_menu(menu_edicao_aresta, mousepoint);
 
         BeginDrawing();
         ClearBackground(RAYWHITE);
@@ -986,10 +1111,16 @@ int main()
 
         EndMode2D();
 
-        if (menu_edicao_aresta.ativa)
+        if (menu_edicao_aresta->ativa)
         {
-            desenha_menu_edicao_aresta(&menu_edicao_aresta);
-            DrawText(menu_edicao_aresta.input.buffer, menu_edicao_aresta.rect_menu.x + 90, menu_edicao_aresta.rect_menu.y + 45, 20, BLACK);
+            desenha_menu_edicao(menu_edicao_aresta);
+            DrawText(menu_edicao_aresta->input.buffer, menu_edicao_aresta->rect_menu.x + 90, menu_edicao_aresta->rect_menu.y + 45, 20, BLACK);
+        }
+
+        if (menu_criacao_k_completo->ativa)
+        {
+            desenha_menu_edicao(menu_criacao_k_completo);
+            DrawText(menu_criacao_k_completo->input.buffer, menu_criacao_k_completo->rect_menu.x + menu_criacao_k_completo->rect_menu.width - 120, menu_criacao_k_completo->rect_menu.y + 45, 20, BLACK);
         }
 
         for (size_t i = 0; i < quant_btn; i++)
@@ -1005,7 +1136,10 @@ int main()
     };
 
     destroy_grafo(grafo);
-    free(menu_edicao_aresta.input.buffer);
+    free(menu_edicao_aresta->input.buffer);
+    free(menu_edicao_aresta);
+    free(menu_criacao_k_completo->input.buffer);
+    free(menu_criacao_k_completo);
 
     CloseWindow();
     return 0;

@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <raylib.h>
+#include <string.h>
 
 typedef struct
 {
@@ -28,11 +29,12 @@ typedef struct
 
 typedef struct
 {
+    char *titulo;
+    char *label;
     Rectangle rect_menu;
-    Rectangle rect_input;
     InputText input;
     bool ativa;
-} MenuEdicaoAresta;
+} MenuEdicao;
 
 bool onButtonClick(Button *button, Vector2 mousepoint);
 
@@ -40,4 +42,6 @@ void drawButton(Button *button, int font_size);
 
 Button *create_button_rect(Rectangle rect, Color color, const char *text);
 
-void desenha_menu_edicao_aresta(MenuEdicaoAresta *menu);
+void desenha_menu_edicao(MenuEdicao *menu);
+
+MenuEdicao *criar_menu_edicao(char *titulo, char *label, Rectangle rect_menu, int limit_char);
