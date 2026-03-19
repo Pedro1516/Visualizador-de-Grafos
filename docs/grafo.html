@@ -52,25 +52,14 @@ background:black;
 /* loading */
 
 #loading{
-display:flex;
-align-items:center;
-gap:12px;
-font-size:14px;
-opacity:0.8;
+  height: 0;
 }
 
-/* spinner */
-
-
-@keyframes spin{
-to{ transform:rotate(360deg); }
-}
-
-/* esconder quando carregar */
 
 .hidden{
 display:none;
 }
+
 
 </style>
 </head>
@@ -78,8 +67,6 @@ display:none;
 <body>
 
 <div id="app">
-
-<h1>Visualização de Grafos</h1>
 
 <div id="loading">
 <div class="spinner"></div>

@@ -990,9 +990,9 @@ int main()
     MenuEdicao *menu_edicao_aresta = criar_menu_edicao("Editar Peso", "Peso:", (Rectangle){screen_w - 470, 360, 200, 100}, 5);
     MenuEdicao *menu_criacao_k_completo = criar_menu_edicao("Criar K Completo", "Quantidade de vértices:", (Rectangle){screen_w - 470, 460, 200, 100}, 3);
     MenuBotoes *menu_botoes = criar_menu_btn((Rectangle){GetScreenWidth() - 320, 80, 300, GetScreenHeight()});
-    SandwichMenu btn_abrir_menu = criar_menu_sanduiche("assets/menu_icon.png", (Vector2){GetScreenWidth() - 50, 50}, 20);
+    SandwichMenu btn_abrir_menu = criar_menu_sanduiche("docs/assets/menu_icon.png", (Vector2){GetScreenWidth() - 50, 50}, 20);
 
-    Texture2D ze = LoadTexture("assets/ze_do_grafo.jpeg");
+    Texture2D ze = LoadTexture("docs/assets/ze_do_grafo.png");
     Font font = LoadFont("docs/fonts/Oswald.ttf");
 
     add_button_menu(menu_botoes, RED, "Criar Vertice");
