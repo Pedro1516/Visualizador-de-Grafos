@@ -810,33 +810,41 @@ void fechar_menu(MenuEdicao *menu, Vector2 mousepoint)
 
 int existe_aresta(Grafo *grafo, int v1, int v2)
 {
-    for (int i = 0; i < grafo->vertices[v1].quant_a; i++)
+    for (int i = 0; i < grafo->quant_a; i++)
     {
-        int idx = grafo->vertices[v1].arestas[i];
-        Aresta *a = &grafo->arestas[idx];
+        Aresta *a = &grafo->arestas[i];
 
-        if ((a->vertice[0] == v1 && a->vertice[1] == v2) ||
-            (a->vertice[0] == v2 && a->vertice[1] == v1))
+        if (a->vertice[0] == v1 && a->vertice[1] == v2)
             return 1;
+
+        if (!grafo->direcionado)
+            if (a->vertice[0] == v2 && a->vertice[1] == v1)
+                return 1;
     }
     return 0;
 }
 
-
 void exportar_lista_adj(Grafo *grafo)
 {
-    FILE *fd = fopen("grafo.txt", "w");
-    if (fd == NULL)
-        return;
+    int capacidade = 4096;
+    int offset = 0;
+    char *buffer = malloc(capacidade);
 
-    // primeira linha: quant_v ponderado direcionado
-    fprintf(fd, "%d %d %d\n", grafo->quant_v, grafo->ponderado, grafo->direcionado);
+#define ENSURE(n)                             \
+    while (offset + (n) >= capacidade)        \
+    {                                         \
+        capacidade *= 2;                      \
+        buffer = realloc(buffer, capacidade); \
+    }
+
+    ENSURE(64);
+    offset += snprintf(buffer + offset, capacidade - offset,
+                       "%d %d %d\n", grafo->quant_v, grafo->ponderado, grafo->direcionado);
 
     for (int i = 0; i < grafo->quant_v; i++)
     {
         Vertice *v = &grafo->vertices[i];
-
-        int primeiro = 1; // controle de espaço
+        int primeiro = 1;
 
         for (int j = 0; j < v->quant_a; j++)
         {
@@ -844,100 +852,110 @@ void exportar_lista_adj(Grafo *grafo)
             Aresta *a = &grafo->arestas[a_idx];
 
             int outro;
-
             if (grafo->direcionado)
             {
-                // só exporta arestas que SAEM do vértice
                 if (a->vertice[0] != i)
                     continue;
-
                 outro = a->vertice[1];
             }
             else
             {
                 outro = (a->vertice[0] == i) ? a->vertice[1] : a->vertice[0];
-
-                // evita duplicar (só escreve uma vez)
-                if (i > outro)
-                    continue;
             }
 
-            // espaço entre elementos
+            ENSURE(32);
             if (!primeiro)
-                fprintf(fd, " ");
+                offset += snprintf(buffer + offset, capacidade - offset, " ");
 
             if (grafo->ponderado)
-            {
-                fprintf(fd, "%d:%d", outro, a->peso);
-            }
+                offset += snprintf(buffer + offset, capacidade - offset, "%d:%d", outro, a->peso);
             else
-            {
-                fprintf(fd, "%d", outro);
-            }
+                offset += snprintf(buffer + offset, capacidade - offset, "%d", outro);
 
             primeiro = 0;
         }
 
-        fprintf(fd, "\n"); // linha por vértice
+        ENSURE(4);
+        offset += snprintf(buffer + offset, capacidade - offset, "\n");
     }
 
-    fclose(fd);
+    EM_ASM({
+        var conteudo = UTF8ToString($0);
+        downloadGrafo(conteudo); }, buffer);
+
+    free(buffer);
+#undef ENSURE
 }
 
-void importar_lista_adj_str(Grafo *grafo, const char *conteudo) {
-    int quant_v, ponderado, direcionado, offset = 0;
+void importar_lista_adj_str(Grafo *grafo, const char *conteudo)
+{
+    int quant_v, ponderado, direcionado;
+    int offset = 0;
 
-    // 1. Lê o cabeçalho
-    if (sscanf(conteudo, "%d %d %d%n", &quant_v, &ponderado, &direcionado, &offset) < 3) return;
+    sscanf(conteudo, "%d %d %d%n", &quant_v, &ponderado, &direcionado, &offset);
     conteudo += offset;
+
+    // pula tudo até o fim da linha do cabeçalho
+    while (*conteudo && *conteudo != '\n') conteudo++;
+    if (*conteudo == '\n') conteudo++;
 
     grafo->ponderado = ponderado;
     grafo->direcionado = direcionado;
 
-    // 2. Cria os vértices em círculo
-    for (int i = 0; i < quant_v; i++) {
-        float ang = i * (2.0f * PI / quant_v);
+    for (int i = 0; i < quant_v; i++)
+    {
+        float ang = i * (2 * PI / quant_v);
         float x = 600 + 200 * cosf(ang);
         float y = 400 + 200 * sinf(ang);
         add_vertice(grafo, x, y, GREEN);
     }
 
-    // 3. Lê as linhas de adjacência
-    int v = 0;
-    char linha[1024];
-    
-    // " %[^\n]%n" pula espaços/quebras de linha iniciais e lê até o próximo \n
-    while (v < quant_v && sscanf(conteudo, " %[^\n]%n", linha, &offset) == 1) {
-        conteudo += offset;
+    for (int v = 0; v < quant_v && *conteudo; v++)
+    {
+        while (*conteudo && *conteudo != '\n')
+        {
+            // pula espaços, tabs e \r
+            while (*conteudo == ' ' || *conteudo == '\t' || *conteudo == '\r')
+                conteudo++;
 
-        char *token = strtok(linha, " ");
-        while (token) {
-            int adj, peso = 0;
-            if (grafo->ponderado) {
-                sscanf(token, "%d:%d", &adj, &peso);
-            } else {
-                adj = atoi(token);
-            }
+            if (*conteudo == '\n' || *conteudo == '\0')
+                break;
 
-            // Evita criar arestas duplicadas em grafos não direcionados
-            if (grafo->direcionado || !existe_aresta(grafo, v, adj)) {
+            int adj = 0, peso = 0, lido = 0;
+
+            if (grafo->ponderado)
+                sscanf(conteudo, "%d:%d%n", &adj, &peso, &lido);
+            else
+                sscanf(conteudo, "%d%n", &adj, &lido);
+
+            if (lido == 0)
+                break;
+
+            conteudo += lido;
+
+            if (adj == v)
+                continue;
+
+            if (!existe_aresta(grafo, v, adj))
                 add_aresta(grafo, v, adj, peso);
-            }
-            token = strtok(NULL, " ");
         }
-        v++;
+
+        // consome o \n
+        if (*conteudo == '\n') conteudo++;
     }
 }
 
-void importar_grafo_web(const char *conteudo) {
-    if (grafo_global) {
+void importar_grafo_web(const char *conteudo)
+{
+    if (grafo_global)
+    {
         destroy_grafo(grafo_global);
     }
 
     // Aloca e inicializa um novo grafo limpo
     grafo_global = (Grafo *)malloc(sizeof(Grafo));
     // Importante: criar_grafo já faz os mallocs internos de vértices e arestas
-    criar_grafo(grafo_global, 0, 0); 
+    criar_grafo(grafo_global, 0, 0);
 
     importar_lista_adj_str(grafo_global, conteudo);
 }

@@ -119,29 +119,41 @@
 
 
   <script>
-    function abrirSeletorArquivo() {
-      const input = document.createElement("input");
-      input.type = "file";
+    let _inputSeletor = null;
 
-      input.onchange = function (event) {
+function abrirSeletorArquivo() {
+    _inputSeletor = document.createElement("input");
+    _inputSeletor.type = "file";
+
+    _inputSeletor.onchange = function (event) {
         const file = event.target.files[0];
         const reader = new FileReader();
 
         reader.onload = function (e) {
-          const conteudo = e.target.result;
+            const conteudo = e.target.result;
 
-          Module.ccall(
-            'importar_grafo_web',
-            null,
-            ['string'],
-            [conteudo]
-          );
+            Module.ccall(
+                'importar_grafo_web',
+                null,
+                ['string'],
+                [conteudo]
+            );
         };
 
         reader.readAsText(file);
-      };
+    };
 
-      input.click();
+    _inputSeletor.click();
+}
+
+    function downloadGrafo(conteudo) {
+      const blob = new Blob([conteudo], { type: "text/plain" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "grafo.txt";
+      a.click();
+      URL.revokeObjectURL(url);
     }
   </script>
 </body>
