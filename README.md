@@ -42,15 +42,19 @@ Operações disponíveis:
 
 ```
 .
+├── docs/
+│   ├── grafo.html
+│   ├── grafo.js
+│   ├── grafo.wasm
+│   ├── fonts/
+│   │   └── Oswald.ttf
+│   └── assets/
+│       ├── menu_icon.png
+│       └── ze_do_grafo.png
 ├── main.c
 ├── interface.c
 ├── interface.h
-├── fonts/
-├── grafo.html
-├── grafo.js
-├── grafo.wasm
-├── README.md
-└── LICENSE
+└── raylib/
 ```
 
 ---
