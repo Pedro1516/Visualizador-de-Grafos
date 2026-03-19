@@ -3,6 +3,7 @@
 #include <raylib.h>
 #include <raymath.h>
 #include "interface.h"
+#include <emscripten.h>
 
 typedef struct
 {
@@ -68,6 +69,8 @@ typedef struct
     bool ativa;
 
 } DFSAnim;
+
+Grafo *grafo_global;
 
 Fila *criar_fila(int quant_dados)
 {
@@ -819,83 +822,6 @@ int existe_aresta(Grafo *grafo, int v1, int v2)
     return 0;
 }
 
-void importar_lista_adj(Grafo *grafo, const char *arquivo)
-{
-    FILE *fd = fopen(arquivo, "r");
-    if (!fd)
-        return;
-
-    int quant_v, ponderado, direcionado;
-
-    fscanf(fd, "%d %d %d\n", &quant_v, &ponderado, &direcionado);
-
-    grafo->ponderado = ponderado;
-    grafo->direcionado = direcionado;
-
-    // cria vertices
-    for (int i = 0; i < quant_v; i++)
-    {
-        float ang = i * (2 * PI / quant_v);
-
-        float x = 600 + 200 * cosf(ang);
-        float y = 400 + 200 * sinf(ang);
-
-        add_vertice(grafo, x, y, GREEN);
-    }
-
-    char linha[1024];
-    int v = 0;
-
-    while (fgets(linha, sizeof(linha), fd) && v < quant_v)
-    {
-        // remove \n
-        linha[strcspn(linha, "\n")] = 0;
-
-        // linha vazia → vértice sem arestas
-        if (strlen(linha) == 0)
-        {
-            v++;
-            continue;
-        }
-
-        char *token = strtok(linha, " ");
-
-        while (token)
-        {
-            int adj, peso = 0;
-
-            if (grafo->ponderado)
-            {
-                // formato: destino:peso
-                sscanf(token, "%d:%d", &adj, &peso);
-            }
-            else
-            {
-                adj = atoi(token);
-            }
-
-            if (grafo->direcionado)
-            {
-                // grafo direcionado → adiciona direto
-                add_aresta(grafo, v, adj, peso);
-            }
-            else
-            {
-                // grafo não direcionado → evita duplicata
-                if (!existe_aresta(grafo, v, adj))
-                {
-                    add_aresta(grafo, v, adj, peso);
-                }
-            }
-
-            token = strtok(NULL, " ");
-        }
-
-        v++;
-    }
-
-    fclose(fd);
-}
 
 void exportar_lista_adj(Grafo *grafo)
 {
@@ -958,13 +884,71 @@ void exportar_lista_adj(Grafo *grafo)
     fclose(fd);
 }
 
+void importar_lista_adj_str(Grafo *grafo, const char *conteudo) {
+    int quant_v, ponderado, direcionado, offset = 0;
+
+    // 1. Lê o cabeçalho
+    if (sscanf(conteudo, "%d %d %d%n", &quant_v, &ponderado, &direcionado, &offset) < 3) return;
+    conteudo += offset;
+
+    grafo->ponderado = ponderado;
+    grafo->direcionado = direcionado;
+
+    // 2. Cria os vértices em círculo
+    for (int i = 0; i < quant_v; i++) {
+        float ang = i * (2.0f * PI / quant_v);
+        float x = 600 + 200 * cosf(ang);
+        float y = 400 + 200 * sinf(ang);
+        add_vertice(grafo, x, y, GREEN);
+    }
+
+    // 3. Lê as linhas de adjacência
+    int v = 0;
+    char linha[1024];
+    
+    // " %[^\n]%n" pula espaços/quebras de linha iniciais e lê até o próximo \n
+    while (v < quant_v && sscanf(conteudo, " %[^\n]%n", linha, &offset) == 1) {
+        conteudo += offset;
+
+        char *token = strtok(linha, " ");
+        while (token) {
+            int adj, peso = 0;
+            if (grafo->ponderado) {
+                sscanf(token, "%d:%d", &adj, &peso);
+            } else {
+                adj = atoi(token);
+            }
+
+            // Evita criar arestas duplicadas em grafos não direcionados
+            if (grafo->direcionado || !existe_aresta(grafo, v, adj)) {
+                add_aresta(grafo, v, adj, peso);
+            }
+            token = strtok(NULL, " ");
+        }
+        v++;
+    }
+}
+
+void importar_grafo_web(const char *conteudo) {
+    if (grafo_global) {
+        destroy_grafo(grafo_global);
+    }
+
+    // Aloca e inicializa um novo grafo limpo
+    grafo_global = (Grafo *)malloc(sizeof(Grafo));
+    // Importante: criar_grafo já faz os mallocs internos de vértices e arestas
+    criar_grafo(grafo_global, 0, 0); 
+
+    importar_lista_adj_str(grafo_global, conteudo);
+}
+
 int main()
 {
     int screen_w = 1280;
     int screen_h = 720;
 
-    Grafo *grafo = (Grafo *)malloc(sizeof(Grafo));
-    criar_grafo(grafo, 1, 1);
+    grafo_global = (Grafo *)malloc(sizeof(Grafo));
+    criar_grafo(grafo_global, 1, 1);
     BFSAnim bfs_anim;
     bfs_anim.ativa = false;
     DFSAnim dfs_anim;
@@ -1009,7 +993,7 @@ int main()
     add_button_menu(menu_botoes, RED, "Importar Grafo");
     add_button_menu(menu_botoes, RED, "Exportar Grafo");
 
-    gerar_k_completo(grafo, 10, 500.0f);
+    gerar_k_completo(grafo_global, 10, 500.0f);
 
     while (!WindowShouldClose())
     {
@@ -1017,7 +1001,7 @@ int main()
         Vector2 mouseWorldPos = GetScreenToWorld2D(mousepoint, camera);
 
         if (moving_cam == false)
-            check_collision_vertex(grafo, &moving_vertex, mouseWorldPos, &vertice_movendo_atual);
+            check_collision_vertex(grafo_global, &moving_vertex, mouseWorldPos, &vertice_movendo_atual);
 
         if (IsWindowResized())
         {
@@ -1040,20 +1024,20 @@ int main()
         {
             int aresta_anterior = aresta_selecionada;
 
-            if (select_vertex(grafo, mouseWorldPos, vertices_selecionados))
+            if (select_vertex(grafo_global, mouseWorldPos, vertices_selecionados))
             {
                 if (aresta_selecionada != -1)
                 {
-                    grafo->arestas[aresta_selecionada].cor = BLACK;
+                    grafo_global->arestas[aresta_selecionada].cor = BLACK;
                     aresta_selecionada = -1;
                 }
             }
 
-            if (select_aresta(grafo, mouseWorldPos, &aresta_selecionada) == 1)
+            if (select_aresta(grafo_global, mouseWorldPos, &aresta_selecionada) == 1)
             {
                 if (aresta_anterior != -1)
-                    grafo->arestas[aresta_anterior].cor = BLACK;
-                grafo->arestas[aresta_selecionada].cor = RED;
+                    grafo_global->arestas[aresta_anterior].cor = BLACK;
+                grafo_global->arestas[aresta_selecionada].cor = RED;
 
                 if (vertices_selecionados[0] != -1)
                     vertices_selecionados[0] = -1;
@@ -1067,12 +1051,12 @@ int main()
 
             if (onButtonClickScroll(&menu_botoes->list_btn[0], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // Add vertice
             {
-                add_vertice(grafo, 100, 150, GREEN);
+                add_vertice(grafo_global, 100, 150, GREEN);
             }
 
             if (onButtonClickScroll(&menu_botoes->list_btn[1], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // Add aresta
             {
-                add_aresta_selec(grafo, vertices_selecionados);
+                add_aresta_selec(grafo_global, vertices_selecionados);
                 vertices_selecionados[0] = -1;
                 vertices_selecionados[1] = -1;
             }
@@ -1081,13 +1065,13 @@ int main()
             {
                 if (aresta_selecionada != -1)
                 {
-                    excluir_aresta(grafo, aresta_selecionada);
+                    excluir_aresta(grafo_global, aresta_selecionada);
                     aresta_selecionada = -1;
                 }
 
                 if (vertices_selecionados[0] != -1)
                 {
-                    excluir_vertice(grafo, vertices_selecionados[0]);
+                    excluir_vertice(grafo_global, vertices_selecionados[0]);
                     vertices_selecionados[0] = -1;
                 }
             }
@@ -1101,24 +1085,24 @@ int main()
 
             if (onButtonClickScroll(&menu_botoes->list_btn[4], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && vertices_selecionados[0] != -1 && !moving_cam) // bfs
             {
-                limpar_animacao(grafo, &bfs_anim, &dfs_anim);
+                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
 
-                iniciar_bfs(grafo, &bfs_anim, vertices_selecionados[0]);
+                iniciar_bfs(grafo_global, &bfs_anim, vertices_selecionados[0]);
                 vertices_selecionados[0] = -1;
             }
 
             if (onButtonClickScroll(&menu_botoes->list_btn[5], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && vertices_selecionados[0] != -1 && !moving_cam) // dfs
             {
-                limpar_animacao(grafo, &bfs_anim, &dfs_anim);
+                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
 
-                iniciar_dfs(grafo, &dfs_anim, vertices_selecionados[0]);
+                iniciar_dfs(grafo_global, &dfs_anim, vertices_selecionados[0]);
                 vertices_selecionados[0] = -1;
             }
 
             if (onButtonClickScroll(&menu_botoes->list_btn[6], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // limpar animacao
             {
 
-                limpar_animacao(grafo, &bfs_anim, &dfs_anim);
+                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
             }
 
             if (onButtonClickScroll(&menu_botoes->list_btn[7], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // gerar k completo
@@ -1128,37 +1112,34 @@ int main()
                 menu_criacao_k_completo->rect_menu.x = GetScreenWidth() - 550;
             }
 
-            if (onButtonClickScroll(&menu_botoes->list_btn[8], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // excluir grafo
+            if (onButtonClickScroll(&menu_botoes->list_btn[8], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // excluir grafo_global
             {
-                int ponderado = grafo->ponderado;
-                int direcionado = grafo->direcionado;
-                destroy_grafo(grafo);
-                grafo = (Grafo *)malloc(sizeof(Grafo));
-                criar_grafo(grafo, direcionado, ponderado);
+                int ponderado = grafo_global->ponderado;
+                int direcionado = grafo_global->direcionado;
+                destroy_grafo(grafo_global);
+                grafo_global = (Grafo *)malloc(sizeof(Grafo));
+                criar_grafo(grafo_global, direcionado, ponderado);
             }
 
             if (onButtonClickScroll(&menu_botoes->list_btn[9], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // excluir grafo
             {
-                grafo->ponderado = !grafo->ponderado;
+                grafo_global->ponderado = !grafo_global->ponderado;
             }
 
             if (onButtonClickScroll(&menu_botoes->list_btn[10], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // excluir grafo
             {
-                grafo->direcionado = !grafo->direcionado;
+                grafo_global->direcionado = !grafo_global->direcionado;
             }
 
             if (onButtonClickScroll(&menu_botoes->list_btn[11], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // excluir grafo
             {
-                destroy_grafo(grafo);
-                grafo = (Grafo *)malloc(sizeof(Grafo));
-                criar_grafo(grafo, 0, 0);
-
-                importar_lista_adj(grafo, "grafo.txt");
+                EM_ASM(
+                    abrirSeletorArquivo(););
             }
 
             if (onButtonClickScroll(&menu_botoes->list_btn[12], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // excluir grafo
             {
-                exportar_lista_adj(grafo);
+                exportar_lista_adj(grafo_global);
             }
         }
 
@@ -1170,10 +1151,10 @@ int main()
             {
                 int n = atoi(menu_criacao_k_completo->input.buffer);
 
-                destroy_grafo(grafo);
-                grafo = (Grafo *)malloc(sizeof(Grafo));
-                criar_grafo(grafo, 0, 0);
-                gerar_k_completo(grafo, n, 50.f * n);
+                destroy_grafo(grafo_global);
+                grafo_global = (Grafo *)malloc(sizeof(Grafo));
+                criar_grafo(grafo_global, 0, 0);
+                gerar_k_completo(grafo_global, n, 50.f * n);
 
                 menu_criacao_k_completo->ativa = false;
                 menu_criacao_k_completo->input.char_inserted = 0;
@@ -1193,8 +1174,8 @@ int main()
                 if (aresta_selecionada != -1)
                 {
                     int peso = atoi(menu_edicao_aresta->input.buffer);
-                    grafo->arestas[aresta_selecionada].peso = peso;
-                    grafo->arestas[aresta_selecionada].cor = BLACK;
+                    grafo_global->arestas[aresta_selecionada].peso = peso;
+                    grafo_global->arestas[aresta_selecionada].cor = BLACK;
                     aresta_selecionada = -1;
                 }
 
@@ -1223,10 +1204,10 @@ int main()
 
         DrawTexture(ze, 100, 50000, WHITE);
 
-        desenha_grafo(grafo, font, camera.zoom);
-        desenha_selecao_vertice(grafo, vertices_selecionados);
-        update_bfs(grafo, &bfs_anim);
-        update_dfs(grafo, &dfs_anim);
+        desenha_grafo(grafo_global, font, camera.zoom);
+        desenha_selecao_vertice(grafo_global, vertices_selecionados);
+        update_bfs(grafo_global, &bfs_anim);
+        update_dfs(grafo_global, &dfs_anim);
 
         EndMode2D();
 
@@ -1246,15 +1227,15 @@ int main()
             DrawText(menu_criacao_k_completo->input.buffer, menu_criacao_k_completo->rect_menu.x + menu_criacao_k_completo->rect_menu.width - 120, menu_criacao_k_completo->rect_menu.y + 45, 20, BLACK);
         }
 
-        DrawText(TextFormat("Vertices: %d", grafo->quant_v), 10, 10, 20, BLACK);
-        DrawText(TextFormat("Arestas: %d", grafo->quant_a), 10, 40, 20, BLACK);
+        DrawText(TextFormat("Vertices: %d", grafo_global->quant_v), 10, 10, 20, BLACK);
+        DrawText(TextFormat("Arestas: %d", grafo_global->quant_a), 10, 40, 20, BLACK);
         DrawText(TextFormat("FPS: %d", GetFPS()), 10, 70, 20, BLACK);
-        DrawText(TextFormat("Grafo %s %s", grafo->direcionado ? "Orientado" : "Não Orientado", grafo->ponderado ? "Ponderado" : "Não Ponderado"), 10, 100, 20, BLACK);
+        DrawText(TextFormat("Grafo %s %s", grafo_global->direcionado ? "Orientado" : "Não Orientado", grafo_global->ponderado ? "Ponderado" : "Não Ponderado"), 10, 100, 20, BLACK);
 
         EndDrawing();
     };
 
-    destroy_grafo(grafo);
+    destroy_grafo(grafo_global);
     free(menu_edicao_aresta->input.buffer);
     free(menu_edicao_aresta);
     free(menu_criacao_k_completo->input.buffer);

@@ -1,122 +1,149 @@
 <!DOCTYPE html>
 <html lang="pt-br">
+
 <head>
-<meta charset="utf-8">
-<title>Visualizador de Grafo</title>
+  <meta charset="utf-8">
+  <title>Visualizador de Grafo</title>
 
-<style>
-*{
-margin:0;
-padding:0;
-box-sizing:border-box;
-}
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-body{
-background:#0f172a;
-font-family:system-ui,Arial;
-height:100vh;
-display:flex;
-align-items:center;
-justify-content:center;
-color:white;
-overflow:hidden;
-}
+    body {
+      background: #0f172a;
+      font-family: system-ui, Arial;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      overflow: hidden;
+    }
 
-/* container principal */
+    /* container principal */
 
-#app{
-display:flex;
-flex-direction:column;
-align-items:center;
-gap:20px;
-}
+    #app {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
 
-/* título */
+    /* título */
 
-h1{
-font-weight:500;
-letter-spacing:1px;
-opacity:0.9;
-}
+    h1 {
+      font-weight: 500;
+      letter-spacing: 1px;
+      opacity: 0.9;
+    }
 
-/* canvas */
+    /* canvas */
 
-canvas{
-border-radius:12px;
-box-shadow:
-0 0 40px rgba(0,0,0,0.7),
-0 0 10px rgba(255,255,255,0.05) inset;
-background:black;
-}
+    canvas {
+      border-radius: 12px;
+      box-shadow:
+        0 0 40px rgba(0, 0, 0, 0.7),
+        0 0 10px rgba(255, 255, 255, 0.05) inset;
+      background: black;
+    }
 
-/* loading */
+    /* loading */
 
-#loading{
-  height: 0;
-}
-
-
-.hidden{
-display:none;
-}
+    #loading {
+      height: 0;
+    }
 
 
-</style>
+    .hidden {
+      display: none;
+    }
+  </style>
 </head>
 
 <body>
 
-<div id="app">
+  <div id="app">
 
-<div id="loading">
-<div class="spinner"></div>
-<span>Carregando aplicação...</span>
-</div>
+    <div id="loading">
+      <div class="spinner"></div>
+      <span>Carregando aplicação...</span>
+    </div>
 
-<canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+    <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
 
-</div>
+  </div>
 
 
-<script>
+  <script>
 
-const canvas = document.getElementById("canvas")
-const loading = document.getElementById("loading")
+    const canvas = document.getElementById("canvas")
+    const loading = document.getElementById("loading")
 
-var Module = {
+    var Module = {
 
-canvas: canvas,
+      canvas: canvas,
 
-print: function(){},
+      print: function () { },
 
-printErr: function(){},
+      printErr: function () { },
 
-setStatus: function(text){
+      setStatus: function (text) {
 
-if(text === "Running"){
-loading.classList.add("hidden")
-}
+        if (text === "Running") {
+          loading.classList.add("hidden")
+        }
 
-},
+      },
 
-monitorRunDependencies: function(left){
+      monitorRunDependencies: function (left) {
 
-if(left === 0){
-loading.classList.add("hidden")
-}
+        if (left === 0) {
+          loading.classList.add("hidden")
+        }
 
-}
+      }
 
-}
+    }
 
-canvas.addEventListener("webglcontextlost",(e)=>{
-alert("WebGL context lost. Reload the page.")
-e.preventDefault()
-})
+    canvas.addEventListener("webglcontextlost", (e) => {
+      alert("WebGL context lost. Reload the page.")
+      e.preventDefault()
+    })
 
-</script>
+  </script>
 
-<script async src="grafo.js"></script>
+  <script async src="grafo.js"></script>
 
+
+  <script>
+    function abrirSeletorArquivo() {
+      const input = document.createElement("input");
+      input.type = "file";
+
+      input.onchange = function (event) {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function (e) {
+          const conteudo = e.target.result;
+
+          Module.ccall(
+            'importar_grafo_web',
+            null,
+            ['string'],
+            [conteudo]
+          );
+        };
+
+        reader.readAsText(file);
+      };
+
+      input.click();
+    }
+  </script>
 </body>
+
 </html>

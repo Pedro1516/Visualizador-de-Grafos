@@ -71,7 +71,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /tmp/tmp8ps63169.js
+// include: /tmp/tmpeawj3r3l.js
 
   if (!Module['expectedDataFileDownloads']) Module['expectedDataFileDownloads'] = 0;
   Module['expectedDataFileDownloads']++;
@@ -206,21 +206,21 @@ Module['FS_createPath']("/docs", "fonts", true, true);
 
   })();
 
-// end include: /tmp/tmp8ps63169.js
-// include: /tmp/tmpqdlay5nh.js
+// end include: /tmp/tmpeawj3r3l.js
+// include: /tmp/tmp42yzhh8m.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if ((typeof ENVIRONMENT_IS_WASM_WORKER != 'undefined' && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != 'undefined' && ENVIRONMENT_IS_AUDIO_WORKLET)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: /tmp/tmpqdlay5nh.js
-// include: /tmp/tmphvnrkjou.js
+  // end include: /tmp/tmp42yzhh8m.js
+// include: /tmp/tmptdtqg07w.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: /tmp/tmphvnrkjou.js
+  // end include: /tmp/tmptdtqg07w.js
 
 
 var arguments_ = [];
@@ -9335,6 +9335,114 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
       }),
   };
 
+  var getCFunc = (ident) => {
+      var func = Module['_' + ident]; // closure exported function
+      assert(func, 'Cannot call unknown function ' + ident + ', make sure it is exported');
+      return func;
+    };
+  
+  var writeArrayToMemory = (array, buffer) => {
+      assert(array.length >= 0, 'writeArrayToMemory array must have a length (should be an array or typed array)')
+      HEAP8.set(array, buffer);
+    };
+  
+  
+  
+  var stackAlloc = (sz) => __emscripten_stack_alloc(sz);
+  var stringToUTF8OnStack = (str) => {
+      var size = lengthBytesUTF8(str) + 1;
+      var ret = stackAlloc(size);
+      stringToUTF8(str, ret, size);
+      return ret;
+    };
+  
+  
+  
+  
+  
+  
+  
+    /**
+   * @param {string|null=} returnType
+   * @param {Array=} argTypes
+   * @param {Array=} args
+   * @param {Object=} opts
+   */
+  var ccall = (ident, returnType, argTypes, args, opts) => {
+      // For fast lookup of conversion functions
+      var toC = {
+        'string': (str) => {
+          var ret = 0;
+          if (str !== null && str !== undefined && str !== 0) { // null string
+            ret = stringToUTF8OnStack(str);
+          }
+          return ret;
+        },
+        'array': (arr) => {
+          var ret = stackAlloc(arr.length);
+          writeArrayToMemory(arr, ret);
+          return ret;
+        }
+      };
+  
+      function convertReturnValue(ret) {
+        if (returnType === 'string') {
+          return UTF8ToString(ret);
+        }
+        if (returnType === 'boolean') return Boolean(ret);
+        return ret;
+      }
+  
+      var func = getCFunc(ident);
+      var cArgs = [];
+      var stack = 0;
+      assert(returnType !== 'array', 'Return type should not be "array".');
+      if (args) {
+        for (var i = 0; i < args.length; i++) {
+          var converter = toC[argTypes[i]];
+          if (converter) {
+            if (stack === 0) stack = stackSave();
+            cArgs[i] = converter(args[i]);
+          } else {
+            cArgs[i] = args[i];
+          }
+        }
+      }
+      // Data for a previous async operation that was in flight before us.
+      var previousAsync = Asyncify.currData;
+      var ret = func(...cArgs);
+      function onDone(ret) {
+        runtimeKeepalivePop();
+        if (stack !== 0) stackRestore(stack);
+        return convertReturnValue(ret);
+      }
+    var asyncMode = opts?.async;
+  
+      // Keep the runtime alive through all calls. Note that this call might not be
+      // async, but for simplicity we push and pop in all calls.
+      runtimeKeepalivePush();
+      if (Asyncify.currData != previousAsync) {
+        // A change in async operation happened. If there was already an async
+        // operation in flight before us, that is an error: we should not start
+        // another async operation while one is active, and we should not stop one
+        // either. The only valid combination is to have no change in the async
+        // data (so we either had one in flight and left it alone, or we didn't have
+        // one), or to have nothing in flight and to start one.
+        assert(!(previousAsync && Asyncify.currData), 'We cannot start an async operation when one is already in flight');
+        assert(!(previousAsync && !Asyncify.currData), 'We cannot stop an async operation in flight');
+        // This is a new async operation. The wasm is paused and has unwound its stack.
+        // We need to return a Promise that resolves the return value
+        // once the stack is rewound and execution finishes.
+        assert(asyncMode, 'The call to ' + ident + ' is running asynchronously. If this was intended, add the async option to the ccall/cwrap call.');
+        return Asyncify.whenDone().then(onDone);
+      }
+  
+      ret = onDone(ret);
+      // If this is an async ccall, ensure we return a promise
+      if (asyncMode) return Promise.resolve(ret);
+      return ret;
+    };
+
   var requestFullscreen = Browser.requestFullscreen;
 
   var FS_createPath = (...args) => FS.createPath(...args);
@@ -9417,6 +9525,7 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
 // Begin runtime exports
   Module['addRunDependency'] = addRunDependency;
   Module['removeRunDependency'] = removeRunDependency;
+  Module['ccall'] = ccall;
   Module['requestFullscreen'] = requestFullscreen;
   Module['FS_preloadFile'] = FS_preloadFile;
   Module['FS_unlink'] = FS_unlink;
@@ -9432,7 +9541,6 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
   'convertI32PairToI53',
   'convertI32PairToI53Checked',
   'convertU32PairToI53',
-  'stackAlloc',
   'getTempRet0',
   'setTempRet0',
   'zeroMemory',
@@ -9456,7 +9564,6 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
   'STACK_ALIGN',
   'POINTER_SIZE',
   'ASSERTIONS',
-  'ccall',
   'cwrap',
   'convertJsFunctionToWasm',
   'getEmptyTableSlot',
@@ -9473,8 +9580,6 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
   'UTF32ToString',
   'stringToUTF32',
   'lengthBytesUTF32',
-  'stringToUTF8OnStack',
-  'writeArrayToMemory',
   'registerKeyEventCallback',
   'registerWheelEventCallback',
   'fillDeviceOrientationEventData',
@@ -9567,6 +9672,7 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'bigintToI53Checked',
   'stackSave',
   'stackRestore',
+  'stackAlloc',
   'createNamedFunction',
   'ptrToString',
   'exitJS',
@@ -9617,6 +9723,8 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'intArrayFromString',
   'UTF16Decoder',
   'stringToNewUTF8',
+  'stringToUTF8OnStack',
+  'writeArrayToMemory',
   'JSEvents',
   'specialHTMLTargets',
   'maybeCStringToJsString',
@@ -9839,49 +9947,50 @@ function checkIncomingModuleAPI() {
   ignoredModuleProp('loadSplitModule');
 }
 var ASM_CONSTS = {
-  107742: () => { if (document.fullscreenElement) return 1; },  
- 107788: () => { return Module.canvas.width; },  
- 107820: () => { return parseInt(Module.canvas.style.width); },  
- 107868: () => { document.exitFullscreen(); },  
- 107895: () => { setTimeout(function(){ Module.requestFullscreen(false, false); }, 100); },  
- 107967: () => { if (document.fullscreenElement) return 1; },  
- 108013: () => { return Module.canvas.width; },  
- 108045: () => { return screen.width; },  
- 108070: () => { document.exitFullscreen(); },  
- 108097: ($0) => { const canvasId = UTF8ToString($0); setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { document.querySelector(canvasId).style.width="unset"; }, 100); }, 100); },  
- 108291: () => { return window.innerWidth; },  
- 108317: () => { return window.innerHeight; },  
- 108344: () => { if (document.fullscreenElement) return 1; },  
- 108390: () => { return Module.canvas.width; },  
- 108422: () => { return parseInt(Module.canvas.style.width); },  
- 108470: () => { if (document.fullscreenElement) return 1; },  
- 108516: () => { return Module.canvas.width; },  
- 108548: () => { return screen.width; },  
- 108573: () => { return window.innerWidth; },  
- 108599: () => { return window.innerHeight; },  
- 108626: () => { if (document.fullscreenElement) return 1; },  
- 108672: () => { return Module.canvas.width; },  
- 108704: () => { return screen.width; },  
- 108729: () => { document.exitFullscreen(); },  
- 108756: () => { if (document.fullscreenElement) return 1; },  
- 108802: () => { return Module.canvas.width; },  
- 108834: () => { return parseInt(Module.canvas.style.width); },  
- 108882: () => { document.exitFullscreen(); },  
- 108909: ($0) => { Module.canvas.style.opacity = $0; },  
- 108947: () => { return screen.width; },  
- 108972: () => { return screen.height; },  
- 108998: () => { return window.screenX; },  
- 109025: () => { return window.screenY; },  
- 109052: () => { return window.devicePixelRatio; },  
- 109088: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
- 109141: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
- 109192: () => { Module.canvas.style.cursor = 'none'; },  
- 109229: ($0, $1, $2, $3) => { try { navigator.getGamepads()[$0].vibrationActuator.playEffect('dual-rumble', { startDelay: 0, duration: $3, weakMagnitude: $1, strongMagnitude: $2 }); } catch (e) { try { navigator.getGamepads()[$0].hapticActuators[0].pulse($2, $3); } catch (e) { } } },  
- 109485: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
- 109536: () => { if (document.pointerLockElement) return 1; },  
- 109583: () => { if (document.fullscreenElement) return 1; },  
- 109629: () => { return window.innerWidth; },  
- 109655: () => { return window.innerHeight; }
+  106168: () => { abrirSeletorArquivo(); },  
+ 106191: () => { if (document.fullscreenElement) return 1; },  
+ 106237: () => { return Module.canvas.width; },  
+ 106269: () => { return parseInt(Module.canvas.style.width); },  
+ 106317: () => { document.exitFullscreen(); },  
+ 106344: () => { setTimeout(function(){ Module.requestFullscreen(false, false); }, 100); },  
+ 106416: () => { if (document.fullscreenElement) return 1; },  
+ 106462: () => { return Module.canvas.width; },  
+ 106494: () => { return screen.width; },  
+ 106519: () => { document.exitFullscreen(); },  
+ 106546: ($0) => { const canvasId = UTF8ToString($0); setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { document.querySelector(canvasId).style.width="unset"; }, 100); }, 100); },  
+ 106740: () => { return window.innerWidth; },  
+ 106766: () => { return window.innerHeight; },  
+ 106793: () => { if (document.fullscreenElement) return 1; },  
+ 106839: () => { return Module.canvas.width; },  
+ 106871: () => { return parseInt(Module.canvas.style.width); },  
+ 106919: () => { if (document.fullscreenElement) return 1; },  
+ 106965: () => { return Module.canvas.width; },  
+ 106997: () => { return screen.width; },  
+ 107022: () => { return window.innerWidth; },  
+ 107048: () => { return window.innerHeight; },  
+ 107075: () => { if (document.fullscreenElement) return 1; },  
+ 107121: () => { return Module.canvas.width; },  
+ 107153: () => { return screen.width; },  
+ 107178: () => { document.exitFullscreen(); },  
+ 107205: () => { if (document.fullscreenElement) return 1; },  
+ 107251: () => { return Module.canvas.width; },  
+ 107283: () => { return parseInt(Module.canvas.style.width); },  
+ 107331: () => { document.exitFullscreen(); },  
+ 107358: ($0) => { Module.canvas.style.opacity = $0; },  
+ 107396: () => { return screen.width; },  
+ 107421: () => { return screen.height; },  
+ 107447: () => { return window.screenX; },  
+ 107474: () => { return window.screenY; },  
+ 107501: () => { return window.devicePixelRatio; },  
+ 107537: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
+ 107590: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
+ 107641: () => { Module.canvas.style.cursor = 'none'; },  
+ 107678: ($0, $1, $2, $3) => { try { navigator.getGamepads()[$0].vibrationActuator.playEffect('dual-rumble', { startDelay: 0, duration: $3, weakMagnitude: $1, strongMagnitude: $2 }); } catch (e) { try { navigator.getGamepads()[$0].hapticActuators[0].pulse($2, $3); } catch (e) { } } },  
+ 107934: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
+ 107985: () => { if (document.pointerLockElement) return 1; },  
+ 108032: () => { if (document.fullscreenElement) return 1; },  
+ 108078: () => { return window.innerWidth; },  
+ 108104: () => { return window.innerHeight; }
 };
 function SetCanvasIdJs(out,outSize) { var canvasId = "#" + Module.canvas.id; stringToUTF8(canvasId, out, outSize); }
 function __asyncjs__RequestClipboardData() { return Asyncify.handleAsync(async () => { if (navigator.clipboard && window.isSecureContext) { let items = await navigator.clipboard.read(); for (const item of items) { if (item.types.includes("text/plain")) { const blob = await item.getType("text/plain"); const text = await blob.text(); window._lastClipboardString = text; } else if (item.types.find(t => t.startsWith("image/"))) { const blob = await item.getType(item.types.find(t => t.startsWith("image/"))); const bitmap = await createImageBitmap(blob); const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height; const ctx = canvas.getContext('2d'); ctx.drawImage(bitmap, 0, 0); const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data; window._lastImgWidth = canvas.width; window._lastImgHeight = canvas.height; window._lastImgData = imgData; } } } else console.warn("Clipboard read() requires HTTPS/Localhost"); }); }
@@ -9891,6 +10000,7 @@ function GetLastPastedImage(width,height) { if (window._lastImgData) { const dat
 // Imports from the Wasm binary.
 var _malloc = makeInvalidEarlyAccess('_malloc');
 var _free = makeInvalidEarlyAccess('_free');
+var _importar_grafo_web = Module['_importar_grafo_web'] = makeInvalidEarlyAccess('_importar_grafo_web');
 var _main = Module['_main'] = makeInvalidEarlyAccess('_main');
 var _fflush = makeInvalidEarlyAccess('_fflush');
 var _emscripten_stack_get_end = makeInvalidEarlyAccess('_emscripten_stack_get_end');
@@ -9941,6 +10051,7 @@ var wasmMemory = makeInvalidEarlyAccess('wasmMemory');
 function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['malloc'] != 'undefined', 'missing Wasm export: malloc');
   assert(typeof wasmExports['free'] != 'undefined', 'missing Wasm export: free');
+  assert(typeof wasmExports['importar_grafo_web'] != 'undefined', 'missing Wasm export: importar_grafo_web');
   assert(typeof wasmExports['main'] != 'undefined', 'missing Wasm export: main');
   assert(typeof wasmExports['fflush'] != 'undefined', 'missing Wasm export: fflush');
   assert(typeof wasmExports['emscripten_stack_get_end'] != 'undefined', 'missing Wasm export: emscripten_stack_get_end');
@@ -9988,6 +10099,7 @@ function assignWasmExports(wasmExports) {
   assert(typeof wasmExports['__indirect_function_table'] != 'undefined', 'missing Wasm export: __indirect_function_table');
   _malloc = createExportWrapper('malloc', 1);
   _free = createExportWrapper('free', 1);
+  _importar_grafo_web = Module['_importar_grafo_web'] = createExportWrapper('importar_grafo_web', 1);
   _main = Module['_main'] = createExportWrapper('main', 2);
   _fflush = createExportWrapper('fflush', 1);
   _emscripten_stack_get_end = wasmExports['emscripten_stack_get_end'];
