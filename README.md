@@ -88,7 +88,11 @@ emcc main.c interface.c raylib/src/libraylib.web.a \
 -s USE_GLFW=3 \
 -s ASYNCIFY \
 -s ALLOW_MEMORY_GROWTH=1 \
---preload-file docs/fonts
+--preload-file docs/fonts \
+--preload-file docs/assets \
+-s EXPORTED_FUNCTIONS='["_main","_importar_grafo_web"]' \
+EXPORTED_RUNTIME_METHODS='["ccall"]'
+
 ```
 
 Depois execute um servidor local:
