@@ -92,7 +92,7 @@ Button create_button_rect(Rectangle rect, Color color, const char *text)
     Button button;
     button.color = color;
     button.rect = rect;
-    button.text = text;
+    button.text = strdup(text);
     button.sombra = true;
     button.clicked = false;
     return button;
@@ -172,7 +172,7 @@ void add_button_menu(MenuBotoes *menu, Color color, char *label)
         menu->list_btn = (Button *)realloc(menu->list_btn, sizeof(Button) * menu->limit_btn);
     }
 
-    menu->list_btn[menu->quant_btn] = create_button_rect((Rectangle){GetScreenWidth() - 250, menu->rect.y + 20 + 100 * menu->quant_btn, 200, 50}, color, label);
+    menu->list_btn[menu->quant_btn] = create_button_rect((Rectangle){GetScreenWidth() - 250, menu->rect.y + 20 + 100 * menu->quant_btn, 320, 50}, color, label);
     menu->quant_btn++;
 }
 

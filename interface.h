@@ -14,7 +14,7 @@ typedef struct
 typedef struct
 {
     Rectangle rect;
-    const char *text;
+    char *text;
     Color color;
     bool sombra;
     bool clicked;
