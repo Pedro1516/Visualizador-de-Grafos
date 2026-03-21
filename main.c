@@ -207,7 +207,33 @@ void desenha_grafo(Grafo *grafo, Font font, float zoom)
             }
         }
 
-        DrawLineEx(start, end, 2, a->cor);
+        if (a->vertice[0] == a->vertice[1])
+        {
+            Vector2 center = {
+                grafo->vertices[a->vertice[0]].v.x,
+                grafo->vertices[a->vertice[0]].v.y};
+
+            float r = grafo->vertices[a->vertice[0]].v.radius;
+
+            Vector2 p1 = {center.x - r * 0.5f, center.y - r * 0.85f};
+            Vector2 p2 = {center.x + r * 0.5f, center.y - r * 0.85f};
+            Vector2 c1 = {center.x - r * 2.0f, center.y - r * 3.5f};
+            Vector2 c2 = {center.x + r * 2.0f, center.y - r * 3.5f};
+
+            Vector2 pontos[4] = {p1, c1, c2, p2};
+            DrawSplineBezierCubic(pontos, 4, 2.0f, a->cor);
+
+            if (grafo->direcionado)
+            {
+                float angle = atan2f(p2.y - c2.y, p2.x - c2.x) * RAD2DEG - 90.0f;
+                DrawPoly(p2, 3, 5, angle, BLACK);
+            }
+
+            a->startpos = p1;
+            a->endpos = p2;
+        }
+        else
+            DrawLineEx(start, end, 2, a->cor);
 
         if (grafo->direcionado)
         {
@@ -249,7 +275,7 @@ void desenha_grafo(Grafo *grafo, Font font, float zoom)
             if (angle < -90)
                 angle += 180;
 
-            DrawTextPro(font, TextFormat("%d", a.peso), pos, (Vector2){0, 15}, angle, 20, 2.0f, RED);
+            DrawTextPro(font, TextFormat("%d", a.peso), pos, (Vector2){0, 20}, angle, 20, 2.0f, RED);
         }
     }
 
@@ -533,8 +559,8 @@ int add_aresta_selec(Grafo *grafo, int *vertices_selec)
     int v1 = vertices_selec[0];
     int v2 = vertices_selec[1];
 
-    if (v1 == -1 || v2 == -1)
-        return 0;
+    if (v2 == -1)
+        v2 = v1;
 
     // verifica se já existe exatamente v1 -> v2
     for (int i = 0; i < grafo->vertices[v1].quant_a; i++)
@@ -945,8 +971,9 @@ void importar_lista_adj_str(Grafo *grafo, const char *conteudo)
     }
 }
 
-void importar_grafo_web(const char *conteudo)
+void importar_grafo_web(const char *conteudo, int *v_selecionado, int *a_selecionado)
 {
+
     if (grafo_global)
     {
         destroy_grafo(grafo_global);
@@ -958,6 +985,30 @@ void importar_grafo_web(const char *conteudo)
     criar_grafo(grafo_global, 0, 0);
 
     importar_lista_adj_str(grafo_global, conteudo);
+}
+
+void unificar_arestas(Grafo *grafo)
+{
+
+    for (size_t i = 0; i < grafo->quant_a; i++)
+    {
+        for (size_t j = 0; j < grafo->quant_a; j++)
+        {
+            if (i != j && grafo->arestas[i].vertice[0] == grafo->arestas[j].vertice[1] && grafo->arestas[i].vertice[1] == grafo->arestas[j].vertice[0])
+            {
+                excluir_aresta(grafo, j);
+                break;
+            }
+        }
+    }
+}
+
+void limpar_selecao(int *v_selecionados, int *a_selecionado)
+{
+    v_selecionados[0] = -1;
+    v_selecionados[1] = -1;
+
+    (*a_selecionado) = -1;
 }
 
 int main()
@@ -1077,8 +1128,7 @@ int main()
             {
                 limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
                 add_aresta_selec(grafo_global, vertices_selecionados);
-                vertices_selecionados[0] = -1;
-                vertices_selecionados[1] = -1;
+                limpar_selecao(vertices_selecionados, &aresta_selecionada);
             }
 
             if (onButtonClickScroll(&menu_botoes->list_btn[2], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // Excluir vertice ou aresta
@@ -1093,7 +1143,7 @@ int main()
                 if (vertices_selecionados[0] != -1)
                 {
                     excluir_vertice(grafo_global, vertices_selecionados[0]);
-                    vertices_selecionados[0] = -1;
+                    limpar_selecao(vertices_selecionados, &aresta_selecionada);
                 }
             }
 
@@ -1159,9 +1209,10 @@ int main()
             if (onButtonClickScroll(&menu_botoes->list_btn[10], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // excluir grafo
             {
                 limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+                unificar_arestas(grafo_global);
                 grafo_global->direcionado = !grafo_global->direcionado;
 
-                 if (grafo_global->direcionado)
+                if (grafo_global->direcionado)
                     strcpy(menu_botoes->list_btn[10].text, "Trocar Para Não Direcionado");
                 else
                     strcpy(menu_botoes->list_btn[10].text, "Trocar Para Direcionado");
@@ -1170,12 +1221,15 @@ int main()
             if (onButtonClickScroll(&menu_botoes->list_btn[11], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // excluir grafo
             {
                 limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+                limpar_selecao(vertices_selecionados, &aresta_selecionada);
+
                 EM_ASM(
                     abrirSeletorArquivo(););
             }
 
             if (onButtonClickScroll(&menu_botoes->list_btn[12], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // excluir grafo
             {
+                limpar_selecao(vertices_selecionados, &aresta_selecionada);
                 limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
                 exportar_lista_adj(grafo_global);
             }
