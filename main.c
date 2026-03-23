@@ -1115,124 +1115,132 @@ int main()
             }
         }
 
-        if (menu_botoes->aberto)
+        if (!moving_cam) // Add vertice
+        {
+            Vector2 local_criacao;
+            if (onButtonClickScroll(&menu_botoes->list_btn[0], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto)
+            {
+                local_criacao = GetWorldToScreen2D((Vector2){0, 0}, camera);
+
+                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+                add_vertice(grafo_global, local_criacao.x, local_criacao.y, GREEN);
+            }
+
+            if (IsKeyPressed(KEY_V))
+            {
+                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+                add_vertice(grafo_global, mouseWorldPos.x, mouseWorldPos.y, GREEN);
+            }
+        }
+
+        if (((onButtonClickScroll(&menu_botoes->list_btn[1], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto) || IsKeyPressed(KEY_A)) && !moving_cam) // Add aresta
+        {
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+            add_aresta_selec(grafo_global, vertices_selecionados);
+            limpar_selecao(vertices_selecionados, &aresta_selecionada);
+        }
+
+        if (((onButtonClickScroll(&menu_botoes->list_btn[2], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto) || IsKeyPressed(KEY_DELETE)) && !moving_cam) // Excluir vertice ou aresta
+        {
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+            if (aresta_selecionada != -1)
+            {
+                excluir_aresta(grafo_global, aresta_selecionada);
+                aresta_selecionada = -1;
+            }
+
+            if (vertices_selecionados[0] != -1)
+            {
+                excluir_vertice(grafo_global, vertices_selecionados[0]);
+                limpar_selecao(vertices_selecionados, &aresta_selecionada);
+            }
+        }
+
+        if (onButtonClickScroll(&menu_botoes->list_btn[3], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto && aresta_selecionada != -1 && !moving_cam) // Editar peso
+        {
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+            menu_criacao_k_completo->ativa = false;
+            menu_edicao_aresta->ativa = true;
+            menu_edicao_aresta->rect_menu.x = GetScreenWidth() - 470;
+        }
+
+        if (onButtonClickScroll(&menu_botoes->list_btn[4], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto && vertices_selecionados[0] != -1 && !moving_cam) // bfs
+        {
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+
+            iniciar_bfs(grafo_global, &bfs_anim, vertices_selecionados[0]);
+            vertices_selecionados[0] = -1;
+        }
+
+        if (onButtonClickScroll(&menu_botoes->list_btn[5], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto && vertices_selecionados[0] != -1 && !moving_cam) // dfs
+        {
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+
+            iniciar_dfs(grafo_global, &dfs_anim, vertices_selecionados[0]);
+            vertices_selecionados[0] = -1;
+        }
+
+        if (onButtonClickScroll(&menu_botoes->list_btn[6], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto && !moving_cam) // limpar animacao
         {
 
-            if (onButtonClickScroll(&menu_botoes->list_btn[0], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // Add vertice
-            {
-                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
-                add_vertice(grafo_global, 100, 150, GREEN);
-            }
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+        }
 
-            if (onButtonClickScroll(&menu_botoes->list_btn[1], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // Add aresta
-            {
-                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
-                add_aresta_selec(grafo_global, vertices_selecionados);
-                limpar_selecao(vertices_selecionados, &aresta_selecionada);
-            }
+        if (onButtonClickScroll(&menu_botoes->list_btn[7], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto && !moving_cam) // gerar k completo
+        {
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+            menu_criacao_k_completo->ativa = true;
+            menu_edicao_aresta->ativa = false;
+            menu_criacao_k_completo->rect_menu.x = GetScreenWidth() - 550;
+        }
 
-            if (onButtonClickScroll(&menu_botoes->list_btn[2], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // Excluir vertice ou aresta
-            {
-                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
-                if (aresta_selecionada != -1)
-                {
-                    excluir_aresta(grafo_global, aresta_selecionada);
-                    aresta_selecionada = -1;
-                }
+        if (onButtonClickScroll(&menu_botoes->list_btn[8], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto && !moving_cam) // excluir grafo_global
+        {
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+            int ponderado = grafo_global->ponderado;
+            int direcionado = grafo_global->direcionado;
+            destroy_grafo(grafo_global);
+            grafo_global = (Grafo *)malloc(sizeof(Grafo));
+            criar_grafo(grafo_global, direcionado, ponderado);
+        }
 
-                if (vertices_selecionados[0] != -1)
-                {
-                    excluir_vertice(grafo_global, vertices_selecionados[0]);
-                    limpar_selecao(vertices_selecionados, &aresta_selecionada);
-                }
-            }
+        if (onButtonClickScroll(&menu_botoes->list_btn[9], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // excluir grafo
+        {
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+            grafo_global->ponderado = !grafo_global->ponderado;
 
-            if (onButtonClickScroll(&menu_botoes->list_btn[3], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && aresta_selecionada != -1 && !moving_cam) // Editar peso
-            {
-                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
-                menu_criacao_k_completo->ativa = false;
-                menu_edicao_aresta->ativa = true;
-                menu_edicao_aresta->rect_menu.x = GetScreenWidth() - 470;
-            }
+            if (grafo_global->ponderado)
+                strcpy(menu_botoes->list_btn[9].text, "Trocar Para Não Ponderado");
+            else
+                strcpy(menu_botoes->list_btn[9].text, "Trocar Para Ponderado");
+        }
 
-            if (onButtonClickScroll(&menu_botoes->list_btn[4], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && vertices_selecionados[0] != -1 && !moving_cam) // bfs
-            {
-                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+        if (onButtonClickScroll(&menu_botoes->list_btn[10], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam && menu_botoes->aberto) // excluir grafo
+        {
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+            unificar_arestas(grafo_global);
+            grafo_global->direcionado = !grafo_global->direcionado;
 
-                iniciar_bfs(grafo_global, &bfs_anim, vertices_selecionados[0]);
-                vertices_selecionados[0] = -1;
-            }
+            if (grafo_global->direcionado)
+                strcpy(menu_botoes->list_btn[10].text, "Trocar Para Não Direcionado");
+            else
+                strcpy(menu_botoes->list_btn[10].text, "Trocar Para Direcionado");
+        }
 
-            if (onButtonClickScroll(&menu_botoes->list_btn[5], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && vertices_selecionados[0] != -1 && !moving_cam) // dfs
-            {
-                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+        if (onButtonClickScroll(&menu_botoes->list_btn[11], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam && menu_botoes->aberto) // excluir grafo
+        {
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+            limpar_selecao(vertices_selecionados, &aresta_selecionada);
 
-                iniciar_dfs(grafo_global, &dfs_anim, vertices_selecionados[0]);
-                vertices_selecionados[0] = -1;
-            }
+            EM_ASM(
+                abrirSeletorArquivo(););
+        }
 
-            if (onButtonClickScroll(&menu_botoes->list_btn[6], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // limpar animacao
-            {
-
-                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
-            }
-
-            if (onButtonClickScroll(&menu_botoes->list_btn[7], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // gerar k completo
-            {
-                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
-                menu_criacao_k_completo->ativa = true;
-                menu_edicao_aresta->ativa = false;
-                menu_criacao_k_completo->rect_menu.x = GetScreenWidth() - 550;
-            }
-
-            if (onButtonClickScroll(&menu_botoes->list_btn[8], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // excluir grafo_global
-            {
-                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
-                int ponderado = grafo_global->ponderado;
-                int direcionado = grafo_global->direcionado;
-                destroy_grafo(grafo_global);
-                grafo_global = (Grafo *)malloc(sizeof(Grafo));
-                criar_grafo(grafo_global, direcionado, ponderado);
-            }
-
-            if (onButtonClickScroll(&menu_botoes->list_btn[9], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // excluir grafo
-            {
-                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
-                grafo_global->ponderado = !grafo_global->ponderado;
-
-                if (grafo_global->ponderado)
-                    strcpy(menu_botoes->list_btn[9].text, "Trocar Para Não Ponderado");
-                else
-                    strcpy(menu_botoes->list_btn[9].text, "Trocar Para Ponderado");
-            }
-
-            if (onButtonClickScroll(&menu_botoes->list_btn[10], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // excluir grafo
-            {
-                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
-                unificar_arestas(grafo_global);
-                grafo_global->direcionado = !grafo_global->direcionado;
-
-                if (grafo_global->direcionado)
-                    strcpy(menu_botoes->list_btn[10].text, "Trocar Para Não Direcionado");
-                else
-                    strcpy(menu_botoes->list_btn[10].text, "Trocar Para Direcionado");
-            }
-
-            if (onButtonClickScroll(&menu_botoes->list_btn[11], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // excluir grafo
-            {
-                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
-                limpar_selecao(vertices_selecionados, &aresta_selecionada);
-
-                EM_ASM(
-                    abrirSeletorArquivo(););
-            }
-
-            if (onButtonClickScroll(&menu_botoes->list_btn[12], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // excluir grafo
-            {
-                limpar_selecao(vertices_selecionados, &aresta_selecionada);
-                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
-                exportar_lista_adj(grafo_global);
-            }
+        if (onButtonClickScroll(&menu_botoes->list_btn[12], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam && menu_botoes->aberto) // excluir grafo
+        {
+            limpar_selecao(vertices_selecionados, &aresta_selecionada);
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
+            exportar_lista_adj(grafo_global);
         }
 
         if (menu_criacao_k_completo->ativa)
