@@ -1194,7 +1194,7 @@ int main()
             menu_criacao_k_completo->rect_menu.x = GetScreenWidth() - 550;
         }
 
-        if (onButtonClickScroll(&menu_botoes->list_btn[8], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto && !moving_cam) // excluir grafo_global
+        if (((onButtonClickScroll(&menu_botoes->list_btn[8], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto) || IsKeyPressedRepeat(KEY_DELETE)) && !moving_cam) // excluir grafo_global
         {
             limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
             int ponderado = grafo_global->ponderado;
@@ -1204,7 +1204,7 @@ int main()
             criar_grafo(grafo_global, direcionado, ponderado);
         }
 
-        if (onButtonClickScroll(&menu_botoes->list_btn[9], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam) // excluir grafo
+        if (((onButtonClickScroll(&menu_botoes->list_btn[9], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto) ) && !moving_cam) // excluir grafo
         {
             limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
             grafo_global->ponderado = !grafo_global->ponderado;
@@ -1215,7 +1215,7 @@ int main()
                 strcpy(menu_botoes->list_btn[9].text, "Trocar Para Ponderado");
         }
 
-        if (onButtonClickScroll(&menu_botoes->list_btn[10], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam && menu_botoes->aberto) // excluir grafo
+        if (((onButtonClickScroll(&menu_botoes->list_btn[10], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto)) && !moving_cam) // excluir grafo
         {
             limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
             unificar_arestas(grafo_global);
