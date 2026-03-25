@@ -175,7 +175,7 @@ Este projeto foi desenvolvido com fins educacionais para estudar:
 
 ## Visualize o Programa
 
-https://pedro1516.github.io/Visualizador-de-Grafos/grafo.html
+https://pedro1516.github.io/Visualizador-de-Grafos/
 
 ---
 
