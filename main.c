@@ -808,16 +808,16 @@ void destroy_grafo(Grafo *grafo)
     free(grafo);
 }
 
-void ler_entrada_menu(MenuEdicao *menu)
+void ler_entrada_menu(InputText *input)
 {
     int key = 0;
-    int *char_inserted = &menu->input.char_inserted;
+    int *char_inserted = &input->char_inserted;
     key = GetCharPressed();
     while (key != 0)
     {
-        if (key >= 48 && key <= 57 && (*char_inserted) < menu->input.limit_char)
+        if (key >= 48 && key <= 57 && (*char_inserted) < input->limit_char)
         {
-            menu->input.buffer[*char_inserted] = key;
+            input->buffer[*char_inserted] = key;
             (*char_inserted)++;
         }
         key = GetCharPressed();
@@ -827,7 +827,7 @@ void ler_entrada_menu(MenuEdicao *menu)
     {
         if ((*char_inserted) > 0)
         {
-            menu->input.buffer[(*char_inserted) - 1] = '\0';
+            input->buffer[(*char_inserted) - 1] = '\0';
             (*char_inserted)--;
         }
     }
@@ -1020,6 +1020,8 @@ void limpar_selecao(int *v_selecionados, int *a_selecionado)
     (*a_selecionado) = -1;
 }
 
+void mudar_cor_grafo(Grafo *grafo)
+
 int main()
 {
     int screen_w = 1280;
@@ -1039,6 +1041,8 @@ int main()
     int vertices_selecionados[2] = {-1, -1};
     int aresta_selecionada = -1;
     Color cor_fundo = RAYWHITE;
+    Color cor_fonte = BLACK;
+    Color cor = {0, 0, 0, 255};
 
     SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_WINDOW_RESIZABLE);
     InitWindow(screen_w, screen_h, "Grafo");
@@ -1056,7 +1060,7 @@ int main()
     MenuBotoes *menu_botoes = criar_menu_btn((Rectangle){GetScreenWidth() - 450, 80, 400, GetScreenHeight()});
     SandwichMenu btn_abrir_menu = criar_menu_sanduiche("docs/assets/menu_icon.png", (Vector2){GetScreenWidth() - 50, 50}, 20);
     ThemeButton btn_mudar_tema = criar_menu_tema((Circle){GetScreenWidth() - 100, 50, 20, (Color){50, 60, 90, 255}}, (Texture2D){0}, (Texture2D){0});
-    MenuRGB menu_rgb_vertice = criar_menu_rgb((Rectangle){GetScreenWidth() / 2, GetScreenHeight() / 2, 650, 200});
+    MenuRGB menu_rgb_vertice = criar_menu_rgb((Rectangle){GetScreenWidth() / 2, GetScreenHeight() / 2, 650, 150});
 
     Texture2D ze = LoadTexture("docs/assets/ze_do_grafo.png");
     btn_mudar_tema.light = LoadTexture("docs/assets/light_mode.png");
@@ -1076,6 +1080,7 @@ int main()
     add_button_menu(menu_botoes, RED, "Trocar Para Não Direcionado");
     add_button_menu(menu_botoes, RED, "Importar Grafo");
     add_button_menu(menu_botoes, RED, "Exportar Grafo");
+    add_button_menu(menu_botoes, RED, "Editar Cor");
 
     gerar_k_completo(grafo_global, 10, 500.0f);
 
@@ -1097,7 +1102,7 @@ int main()
                 menu_botoes->list_btn[i].rect.x = GetScreenWidth() - 400;
         }
 
-        if (!CheckCollisionPointRec(mousepoint, menu_botoes->rect))
+        if (!CheckCollisionPointRec(mousepoint, menu_botoes->rect) && !CheckCollisionPointRec(mousepoint, menu_rgb_vertice.rect_menu))
         {
 
             set_target_camera(&camera, moving_vertex, &moving_cam, mousepoint, menu_botoes->list_btn, menu_botoes->quant_btn);
@@ -1258,6 +1263,11 @@ int main()
             exportar_lista_adj(grafo_global);
         }
 
+        if (onButtonClickScroll(&menu_botoes->list_btn[13], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam && menu_botoes->aberto) // excluir grafo
+        {
+            menu_rgb_vertice.aberto = true;
+        }
+
         if (IsKeyPressed(KEY_HOME))
         {
             camera.target = (Vector2){1000, 1000};
@@ -1266,7 +1276,7 @@ int main()
 
         if (menu_criacao_k_completo->ativa)
         {
-            ler_entrada_menu(menu_criacao_k_completo);
+            ler_entrada_menu(&menu_criacao_k_completo->input);
 
             if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER))
             {
@@ -1288,7 +1298,7 @@ int main()
         if (menu_edicao_aresta->ativa)
         {
 
-            ler_entrada_menu(menu_edicao_aresta);
+            ler_entrada_menu(&menu_edicao_aresta->input);
 
             if (IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER))
             {
@@ -1304,6 +1314,49 @@ int main()
                 menu_edicao_aresta->input.char_inserted = 0;
                 for (size_t i = 0; i < menu_edicao_aresta->input.limit_char; i++)
                     menu_edicao_aresta->input.buffer[i] = 0;
+            }
+        }
+
+        if (menu_rgb_vertice.aberto)
+        {
+            switch (menu_rgb_vertice.selecao_input_atual)
+            {
+            case 0:
+                ler_entrada_menu(&menu_rgb_vertice.r);
+
+                int val_r = atoi(menu_rgb_vertice.r.buffer);
+                if (val_r > 255)
+                    val_r = 255;
+                cor.r = val_r;
+
+                break;
+            case 1:
+                ler_entrada_menu(&menu_rgb_vertice.g);
+
+                int val_g = atoi(menu_rgb_vertice.g.buffer);
+                if (val_g > 255)
+                    val_g = 255;
+                cor.g = val_g;
+
+                break;
+            case 2:
+                ler_entrada_menu(&menu_rgb_vertice.b);
+
+                int val_b = atoi(menu_rgb_vertice.b.buffer);
+                if (val_b > 255)
+                    val_b = 255;
+                cor.b = val_b;
+
+                break;
+            case 3:
+                ler_entrada_menu(&menu_rgb_vertice.a);
+
+                int val_a = atoi(menu_rgb_vertice.a.buffer);
+                if (val_a > 255)
+                    val_a = 255;
+                cor.a = val_a;
+
+                break;
             }
         }
 
@@ -1340,6 +1393,21 @@ int main()
             }
         }
 
+        if (menu_rgb_vertice.aberto && !moving_cam)
+        {
+            if (CheckCollisionPointRec(mousepoint, menu_rgb_vertice.rect_r) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+                menu_rgb_vertice.selecao_input_atual = 0;
+
+            if (CheckCollisionPointRec(mousepoint, menu_rgb_vertice.rect_g) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+                menu_rgb_vertice.selecao_input_atual = 1;
+
+            if (CheckCollisionPointRec(mousepoint, menu_rgb_vertice.rect_b) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+                menu_rgb_vertice.selecao_input_atual = 2;
+
+            if (CheckCollisionPointRec(mousepoint, menu_rgb_vertice.rect_a) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+                menu_rgb_vertice.selecao_input_atual = 3;
+        }
+
         BeginDrawing();
         ClearBackground(cor_fundo);
         BeginMode2D(camera);
@@ -1372,12 +1440,24 @@ int main()
             }
 
             desenha_theme_button(btn_mudar_tema);
-           // desenhar_menu_rgb(menu_rgb_vertice);
 
-            DrawText(TextFormat("Vertices: %d", grafo_global->quant_v), 10, 10, 20, BLACK);
-            DrawText(TextFormat("Arestas: %d", grafo_global->quant_a), 10, 40, 20, BLACK);
-            DrawText(TextFormat("FPS: %d", GetFPS()), 10, 70, 20, BLACK);
-            DrawText(TextFormat("Grafo %s %s", grafo_global->direcionado ? "Orientado" : "Não Orientado", grafo_global->ponderado ? "Ponderado" : "Não Ponderado"), 10, 100, 20, BLACK);
+            if (menu_rgb_vertice.aberto)
+            {
+                desenhar_menu_rgb(menu_rgb_vertice);
+                DrawText(menu_rgb_vertice.r.buffer, menu_rgb_vertice.rect_r.x + 10, menu_rgb_vertice.rect_r.y + 10, 20, BLACK);
+                DrawText(menu_rgb_vertice.g.buffer, menu_rgb_vertice.rect_g.x + 10, menu_rgb_vertice.rect_g.y + 10, 20, BLACK);
+                DrawText(menu_rgb_vertice.b.buffer, menu_rgb_vertice.rect_b.x + 10, menu_rgb_vertice.rect_b.y + 10, 20, BLACK);
+                DrawText(menu_rgb_vertice.a.buffer, menu_rgb_vertice.rect_a.x + 10, menu_rgb_vertice.rect_a.y + 10, 20, BLACK);
+                DrawRectangleRounded((Rectangle){menu_rgb_vertice.rect_menu.x + menu_rgb_vertice.rect_menu.width - 50, menu_rgb_vertice.rect_menu.y + 25, 35, 35}, 0.2f, 3, cor);
+            }
+
+            if (btn_mudar_tema.theme)
+                cor_fonte = WHITE;
+
+            DrawText(TextFormat("Vertices: %d", grafo_global->quant_v), 10, 10, 20, cor_fonte);
+            DrawText(TextFormat("Arestas: %d", grafo_global->quant_a), 10, 40, 20, cor_fonte);
+            DrawText(TextFormat("FPS: %d", GetFPS()), 10, 70, 20, cor_fonte);
+            DrawText(TextFormat("Grafo %s %s", grafo_global->direcionado ? "Orientado" : "Não Orientado", grafo_global->ponderado ? "Ponderado" : "Não Ponderado"), 10, 100, 20, cor_fonte);
         }
 
         EndDrawing();

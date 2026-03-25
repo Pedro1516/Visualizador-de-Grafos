@@ -74,6 +74,7 @@ typedef struct
     InputText b;
     InputText a;
     int selecao_input_atual;
+    bool aberto;
 } MenuRGB;
 
 SandwichMenu criar_menu_sanduiche(char *icon, Vector2 pos, int radius);

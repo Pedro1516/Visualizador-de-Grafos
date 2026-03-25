@@ -41,7 +41,7 @@ void drawButtonRec(Button *button, Rectangle rect, int font_size)
         DrawText(button->text,
                  rect.x + rect.width / 2 - text_size / 2,
                  rect.y + rect.height / 2 - font_size / 2,
-                 font_size, BLACK);
+                 font_size, RAYWHITE);
     }
     else
     {
@@ -56,7 +56,7 @@ void drawButtonRec(Button *button, Rectangle rect, int font_size)
         DrawText(button->text,
                  aux.x + aux.width / 2 - text_size / 2,
                  aux.y + aux.height / 2 - font_size / 2,
-                 font_size, BLACK);
+                 font_size, RAYWHITE);
     }
 }
 
@@ -73,7 +73,7 @@ void drawButton(Button *button, int font_size)
         DrawRectangleRounded(sombra, 0.5, 0, (Color){100, 0, 0, 255});
         // Desenha botão
         DrawRectangleRounded(button->rect, 0.5, 0, button->color);
-        DrawText(button->text, button->rect.x + button->rect.width / 2 - text_size / 2, button->rect.y + button->rect.height / 2 - font_size / 2, font_size, BLACK);
+        DrawText(button->text, button->rect.x + button->rect.width / 2 - text_size / 2, button->rect.y + button->rect.height / 2 - font_size / 2, font_size, WHITE);
     }
     else
     {
@@ -83,7 +83,7 @@ void drawButton(Button *button, int font_size)
         aux.y += button->rect.height * 0.2;
         // Desenha botão
         DrawRectangleRounded(aux, 0.5, 0, button->color);
-        DrawText(button->text, aux.x + aux.width / 2 - text_size / 2, aux.y + aux.height / 2 - font_size / 2, font_size, BLACK);
+        DrawText(button->text, aux.x + aux.width / 2 - text_size / 2, aux.y + aux.height / 2 - font_size / 2, font_size, WHITE);
     }
 }
 
@@ -124,8 +124,8 @@ MenuEdicao *criar_menu_edicao(char *titulo, char *label, Rectangle rect_menu, in
 
 void desenha_menu_edicao(MenuEdicao *menu)
 {
-    DrawRectangleRec(menu->rect_menu, (Color){50, 60, 90, 255});
-    DrawRectangleLines(menu->rect_menu.x, menu->rect_menu.y, menu->rect_menu.width, menu->rect_menu.height, (Color){100, 100, 100, 255});
+    DrawRectangleRounded(menu->rect_menu, 0.1f, 2, (Color){50, 60, 90, 255});
+    DrawRectangleRoundedLines(menu->rect_menu, 0.1f, 2, (Color){100, 100, 100, 255});
     DrawText(menu->titulo, menu->rect_menu.x + 10, menu->rect_menu.y + 10, 20, WHITE);
     DrawText(menu->label, menu->rect_menu.x + 10, menu->rect_menu.y + 50, 20, WHITE);
 
@@ -135,8 +135,8 @@ void desenha_menu_edicao(MenuEdicao *menu)
 
 void desenha_menu_botoes(MenuBotoes *menu)
 {
-    DrawRectangleRec(menu->rect, (Color){50, 60, 90, 255});
-    DrawRectangleLines(menu->rect.x, menu->rect.y, menu->rect.width, menu->rect.height, (Color){100, 100, 100, 255});
+    DrawRectangleRounded(menu->rect, 0.1f, 2, (Color){50, 60, 90, 255});
+    DrawRectangleRoundedLines(menu->rect, 0.1f, 2, (Color){100, 100, 100, 255});
 
     BeginScissorMode(menu->rect.x, menu->rect.y, menu->rect.width, menu->rect.height);
 
@@ -277,22 +277,23 @@ void desenha_theme_button(ThemeButton btn)
 
 void desenhar_menu_rgb(MenuRGB menu)
 {
-    DrawRectangleRec(menu.rect_menu, (Color){50, 60, 90, 255});
-    DrawRectangleLines(menu.rect_menu.x, menu.rect_menu.y, menu.rect_menu.width, menu.rect_menu.height, (Color){100, 100, 100, 255});
+    DrawRectangleRounded(menu.rect_menu, 0.1f, 2, (Color){50, 60, 90, 255});
+    DrawRectangleRoundedLines(menu.rect_menu, 0.1f, 2, (Color){100, 100, 100, 255});
 
-    DrawText("R: ", menu.rect_menu.x + 10, menu.rect_menu.y + menu.rect_menu.height / 2 - 15, 30, WHITE);
+    DrawText("R: ", menu.rect_menu.x + 10, menu.rect_menu.y + 25, 30, WHITE);
     DrawRectangleRec(menu.rect_r, WHITE);
 
-    DrawText("G: ", menu.rect_r.x + menu.rect_r.width + 10, menu.rect_menu.y + menu.rect_menu.height / 2 - 15, 30, WHITE);
+    DrawText("G: ", menu.rect_r.x + menu.rect_r.width + 10, menu.rect_menu.y +25, 30, WHITE);
     DrawRectangleRec(menu.rect_g, WHITE);
 
-    DrawText("B: ", menu.rect_g.x + menu.rect_g.width + 10, menu.rect_menu.y + menu.rect_menu.height / 2 - 15, 30, WHITE);
+    DrawText("B: ", menu.rect_g.x + menu.rect_g.width + 10, menu.rect_menu.y + 25, 30, WHITE);
     DrawRectangleRec(menu.rect_b, WHITE);
 
-    DrawText("A: ", menu.rect_b.x + menu.rect_b.width + 10, menu.rect_menu.y + menu.rect_menu.height / 2 - 15, 30, WHITE);
+    DrawText("A: ", menu.rect_b.x + menu.rect_b.width + 10, menu.rect_menu.y + 25, 30, WHITE);
     DrawRectangleRec(menu.rect_a, WHITE);
 
-    Rectangle rec_aux = {menu.rect_r.x - 1, menu.rect_r.y - 1, menu.rect_r.width + 2, menu.rect_r.height + 2};
+    Rectangle rec_list[4] = {menu.rect_r, menu.rect_g, menu.rect_b, menu.rect_a};
+    Rectangle rec_aux = {rec_list[menu.selecao_input_atual].x - 1, rec_list[menu.selecao_input_atual].y - 1, rec_list[menu.selecao_input_atual].width + 2, rec_list[menu.selecao_input_atual].height + 2};
     DrawRectangleLinesEx(rec_aux, 3, (Color){255, 0, 50, 255});
 }
 
@@ -301,11 +302,27 @@ MenuRGB criar_menu_rgb(Rectangle pos_menu)
     MenuRGB menu;
     menu.selecao_input_atual = 0; // vermelho
     menu.rect_menu = pos_menu;
+    menu.aberto = false;
 
-    menu.rect_r = (Rectangle){pos_menu.x + 40, pos_menu.y + pos_menu.height / 2 - 20, 100, 40};
-    menu.rect_g = (Rectangle){menu.rect_r.x + menu.rect_r.width + 40, pos_menu.y + pos_menu.height / 2 - 20, 100, 40};
-    menu.rect_b = (Rectangle){menu.rect_g.x + menu.rect_g.width + 40, pos_menu.y + pos_menu.height / 2 - 20, 100, 40};
-    menu.rect_a = (Rectangle){menu.rect_b.x + menu.rect_b.width + 40, pos_menu.y + pos_menu.height / 2 - 20, 100, 40};
+    menu.rect_r = (Rectangle){pos_menu.x + 40, pos_menu.y + 20, 100, 40};
+    menu.rect_g = (Rectangle){menu.rect_r.x + menu.rect_r.width + 40, pos_menu.y + 20, 100, 40};
+    menu.rect_b = (Rectangle){menu.rect_g.x + menu.rect_g.width + 40, pos_menu.y + 20, 100, 40};
+    menu.rect_a = (Rectangle){menu.rect_b.x + menu.rect_b.width + 40, pos_menu.y + 20, 100, 40};
+
+    menu.r.buffer = (char *)calloc(3, sizeof(char));
+    menu.g.buffer = (char *)calloc(3, sizeof(char));
+    menu.b.buffer = (char *)calloc(3, sizeof(char));
+    menu.a.buffer = (char *)calloc(3, sizeof(char));
+
+    menu.r.char_inserted = 0;
+    menu.g.char_inserted = 0;
+    menu.b.char_inserted = 0;
+    menu.a.char_inserted = 0;
+
+    menu.r.limit_char = 3;
+    menu.g.limit_char = 3;
+    menu.b.limit_char = 3;
+    menu.a.limit_char = 3;
 
     return menu;
 }
