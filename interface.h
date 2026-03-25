@@ -64,7 +64,7 @@ typedef struct
 
 typedef struct
 {
-    Rectangle rect_menu;
+    Rectangle rect_menu; 
     Rectangle rect_r;
     Rectangle rect_g;
     Rectangle rect_b;
@@ -73,6 +73,7 @@ typedef struct
     InputText g;
     InputText b;
     InputText a;
+    Button confirm;
     int selecao_input_atual;
     bool aberto;
 } MenuRGB;

@@ -627,58 +627,55 @@ void update_dfs(Grafo *grafo, DFSAnim *dfs)
     dfs->timer += GetFrameTime();
     if (dfs->timer < dfs->delay)
         return;
-    dfs->timer = 0;
 
-    if (dfs->topo < 0)
+    // Processa arestas sem consumir delay até achar progresso real
+    while (true)
     {
-        dfs->ativa = false;
-        return;
-    }
+        if (dfs->topo < 0)
+        {
+            dfs->ativa = false;
+            return;
+        }
 
-    int atual = dfs->pilha[dfs->topo];
-    Vertice *v = &grafo->vertices[atual];
+        int atual = dfs->pilha[dfs->topo];
+        Vertice *v = &grafo->vertices[atual];
 
-    /* Esgotou todas as arestas deste vértice → backtrack */
-    if (dfs->indice_aresta[atual] >= v->quant_a)
-    {
-        dfs->topo--;
-        return;
-    }
+        if (dfs->indice_aresta[atual] >= v->quant_a)
+        {
+            dfs->topo--;
+            continue; // backtrack imediato, sem custar delay
+        }
 
-    int aresta_idx = v->arestas[dfs->indice_aresta[atual]];
-    Aresta *a = &grafo->arestas[aresta_idx];
-    dfs->indice_aresta[atual]++; /* avança SEMPRE, independente do resultado */
+        int aresta_idx = v->arestas[dfs->indice_aresta[atual]];
+        Aresta *a = &grafo->arestas[aresta_idx];
+        dfs->indice_aresta[atual]++;
 
-    /* Resolve o vértice de destino */
-    int outro;
-    if (grafo->direcionado)
-    {
-        /* Em grafo dirigido, só seguimos arestas que SAEM do vértice atual */
-        if (a->vertice[0] != atual)
-            return; /* aresta de entrada — ignora, mas indice_aresta já avançou */
+        int outro;
+        if (grafo->direcionado)
+        {
+            if (a->vertice[0] != atual)
+                continue; // aresta de entrada, pula
+            outro = a->vertice[1];
+        }
+        else
+        {
+            outro = (a->vertice[0] == atual) ? a->vertice[1] : a->vertice[0];
+        }
 
-        outro = a->vertice[1];
-    }
-    else
-    {
-        outro = (a->vertice[0] == atual) ? a->vertice[1] : a->vertice[0];
-    }
-
-    /* Só visita se ainda não foi visitado */
-    if (!dfs->visitado[outro])
-    {
-        dfs->visitado[outro] = 1;
-        a->cor = BLUE;
-        dfs->pilha[++dfs->topo] = outro;
+        if (!dfs->visitado[outro])
+        {
+            dfs->visitado[outro] = 1;
+            a->cor = BLUE;
+            dfs->pilha[++dfs->topo] = outro;
+            dfs->timer = 0; // só consome o delay quando visita alguém novo
+            return;
+        }
+        // já visitado → continua o loop sem custar delay
     }
 }
 
 int limpar_animacao_dfs(DFSAnim *dfs, Grafo *grafo)
 {
-    for (int i = 0; i < grafo->quant_a; i++)
-        if (grafo->arestas[i].cor.b != 0)
-            grafo->arestas[i].cor = BLACK;
-
     free(dfs->pilha);
     free(dfs->visitado);
     free(dfs->indice_aresta); /* correção: array que estava vazando */
@@ -771,14 +768,6 @@ void update_bfs(Grafo *grafo, BFSAnim *bfs)
 
 int limpar_animacao_bfs(BFSAnim *bfs, Grafo *grafo)
 {
-    for (int i = 0; i < grafo->quant_a; i++)
-    {
-        if (grafo->arestas[i].cor.r != 0)
-        {
-            grafo->arestas[i].cor = BLACK;
-        }
-    }
-
     free(bfs->fila->dados);
     free(bfs->fila);
     free(bfs->visitado);
@@ -793,6 +782,14 @@ void limpar_animacao(Grafo *grafo, BFSAnim *bfs, DFSAnim *dfs)
 
     if (dfs->ativa)
         limpar_animacao_dfs(dfs, grafo);
+
+    for (int i = 0; i < grafo->quant_a; i++)
+    {
+        if (grafo->arestas[i].cor.r != 0 || grafo->arestas[i].cor.b != 0)
+        {
+            grafo->arestas[i].cor = BLACK;
+        }
+    }
 }
 
 void destroy_grafo(Grafo *grafo)
@@ -838,6 +835,13 @@ void fechar_menu(MenuEdicao *menu, Vector2 mousepoint)
     if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         if (!CheckCollisionPointRec(mousepoint, menu->rect_menu)) // Clicou em algum lugar que não é menu
             menu->ativa = false;
+}
+
+void fechar_menu_rgb(MenuRGB *menu, Vector2 mousepoint)
+{
+    if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) || IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        if (!CheckCollisionPointRec(mousepoint, menu->rect_menu)) // Clicou em algum lugar que não é menu
+            menu->aberto = false;
 }
 
 int existe_aresta(Grafo *grafo, int v1, int v2)
@@ -1020,7 +1024,22 @@ void limpar_selecao(int *v_selecionados, int *a_selecionado)
     (*a_selecionado) = -1;
 }
 
-void mudar_cor_grafo(Grafo *grafo)
+void mudar_cor_grafo(Grafo *grafo, Color cor, int *v_selec)
+{
+    if (v_selec[0] != -1)
+        grafo->vertices[v_selec[0]].v.color = cor;
+
+    if (v_selec[1] != -1)
+        grafo->vertices[v_selec[1]].v.color = cor;
+
+    if (v_selec[0] == -1 && v_selec[1] == -1)
+    {
+        for (size_t i = 0; i < grafo->quant_v; i++)
+        {
+            grafo->vertices[i].v.color = cor;
+        }
+    }
+}
 
 int main()
 {
@@ -1095,6 +1114,7 @@ int main()
         if (IsWindowResized())
         {
             menu_botoes->rect.x = GetScreenWidth() - 450;
+            btn_mudar_tema.circle.x = GetScreenWidth() - 100;
             menu_botoes->rect.height = GetScreenHeight();
             btn_abrir_menu.x = GetScreenWidth() - 50;
 
@@ -1102,7 +1122,7 @@ int main()
                 menu_botoes->list_btn[i].rect.x = GetScreenWidth() - 400;
         }
 
-        if (!CheckCollisionPointRec(mousepoint, menu_botoes->rect) && !CheckCollisionPointRec(mousepoint, menu_rgb_vertice.rect_menu))
+        if (!((CheckCollisionPointRec(mousepoint, menu_botoes->rect) && menu_botoes->aberto) || (CheckCollisionPointRec(mousepoint, menu_rgb_vertice.rect_menu) && menu_rgb_vertice.aberto)))
         {
 
             set_target_camera(&camera, moving_vertex, &moving_cam, mousepoint, menu_botoes->list_btn, menu_botoes->quant_btn);
@@ -1189,7 +1209,7 @@ int main()
             limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
 
             iniciar_bfs(grafo_global, &bfs_anim, vertices_selecionados[0]);
-            vertices_selecionados[0] = -1;
+            limpar_selecao(vertices_selecionados, &aresta_selecionada);
         }
 
         if (onButtonClickScroll(&menu_botoes->list_btn[5], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto && vertices_selecionados[0] != -1 && !moving_cam) // dfs
@@ -1197,12 +1217,11 @@ int main()
             limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
 
             iniciar_dfs(grafo_global, &dfs_anim, vertices_selecionados[0]);
-            vertices_selecionados[0] = -1;
+            limpar_selecao(vertices_selecionados, &aresta_selecionada);
         }
 
         if (onButtonClickScroll(&menu_botoes->list_btn[6], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto && !moving_cam) // limpar animacao
         {
-
             limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
         }
 
@@ -1358,6 +1377,9 @@ int main()
 
                 break;
             }
+
+            if (onButtonClick(&menu_rgb_vertice.confirm, mousepoint))
+                mudar_cor_grafo(grafo_global, cor, vertices_selecionados);
         }
 
         if (IsKeyPressed(KEY_H))
@@ -1370,6 +1392,7 @@ int main()
 
         fechar_menu(menu_criacao_k_completo, mousepoint);
         fechar_menu(menu_edicao_aresta, mousepoint);
+        fechar_menu_rgb(&menu_rgb_vertice, mousepoint);
         scroll_menu_botoes(menu_botoes);
 
         if (CheckCollisionPointCircle(mousepoint, (Vector2){btn_abrir_menu.x, btn_abrir_menu.y}, btn_abrir_menu.radius))
@@ -1406,6 +1429,13 @@ int main()
 
             if (CheckCollisionPointRec(mousepoint, menu_rgb_vertice.rect_a) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
                 menu_rgb_vertice.selecao_input_atual = 3;
+
+            if (IsKeyPressed(KEY_TAB))
+            {
+                menu_rgb_vertice.selecao_input_atual++;
+                if (menu_rgb_vertice.selecao_input_atual > 3)
+                    menu_rgb_vertice.selecao_input_atual = 0;
+            }
         }
 
         BeginDrawing();

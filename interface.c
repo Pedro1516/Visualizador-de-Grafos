@@ -283,7 +283,7 @@ void desenhar_menu_rgb(MenuRGB menu)
     DrawText("R: ", menu.rect_menu.x + 10, menu.rect_menu.y + 25, 30, WHITE);
     DrawRectangleRec(menu.rect_r, WHITE);
 
-    DrawText("G: ", menu.rect_r.x + menu.rect_r.width + 10, menu.rect_menu.y +25, 30, WHITE);
+    DrawText("G: ", menu.rect_r.x + menu.rect_r.width + 10, menu.rect_menu.y + 25, 30, WHITE);
     DrawRectangleRec(menu.rect_g, WHITE);
 
     DrawText("B: ", menu.rect_g.x + menu.rect_g.width + 10, menu.rect_menu.y + 25, 30, WHITE);
@@ -295,6 +295,8 @@ void desenhar_menu_rgb(MenuRGB menu)
     Rectangle rec_list[4] = {menu.rect_r, menu.rect_g, menu.rect_b, menu.rect_a};
     Rectangle rec_aux = {rec_list[menu.selecao_input_atual].x - 1, rec_list[menu.selecao_input_atual].y - 1, rec_list[menu.selecao_input_atual].width + 2, rec_list[menu.selecao_input_atual].height + 2};
     DrawRectangleLinesEx(rec_aux, 3, (Color){255, 0, 50, 255});
+
+    drawButton(&menu.confirm, 30);
 }
 
 MenuRGB criar_menu_rgb(Rectangle pos_menu)
@@ -308,6 +310,7 @@ MenuRGB criar_menu_rgb(Rectangle pos_menu)
     menu.rect_g = (Rectangle){menu.rect_r.x + menu.rect_r.width + 40, pos_menu.y + 20, 100, 40};
     menu.rect_b = (Rectangle){menu.rect_g.x + menu.rect_g.width + 40, pos_menu.y + 20, 100, 40};
     menu.rect_a = (Rectangle){menu.rect_b.x + menu.rect_b.width + 40, pos_menu.y + 20, 100, 40};
+    menu.confirm = create_button_rect((Rectangle){pos_menu.x + pos_menu.width - 130, pos_menu.y + pos_menu.height - 60, 100, 40}, RED, "Aplicar");
 
     menu.r.buffer = (char *)calloc(3, sizeof(char));
     menu.g.buffer = (char *)calloc(3, sizeof(char));
