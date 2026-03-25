@@ -1047,7 +1047,7 @@ int main()
     int screen_h = 720;
 
     grafo_global = (Grafo *)malloc(sizeof(Grafo));
-    criar_grafo(grafo_global, 1, 1);
+    criar_grafo(grafo_global, 0, 0);
     BFSAnim bfs_anim;
     bfs_anim.ativa = false;
     DFSAnim dfs_anim;
@@ -1289,7 +1289,7 @@ int main()
 
         if (IsKeyPressed(KEY_HOME))
         {
-            camera.target = (Vector2){1000, 1000};
+            camera.target = (Vector2){0, 0};
             camera.zoom = 0.5f;
         }
 
