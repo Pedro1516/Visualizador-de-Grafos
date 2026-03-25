@@ -253,3 +253,59 @@ void desenhar_menu_sanduiche(SandwichMenu menu)
     DrawCircle(menu.x, menu.y, menu.radius, (Color){50, 60, 90, 255});
     DrawTexture(menu.img, menu.x - menu.img.width / 2, menu.y - menu.img.height / 2, WHITE);
 }
+
+ThemeButton criar_menu_tema(Circle corpo, Texture2D dark, Texture2D light)
+{
+    ThemeButton btn;
+    btn.circle = corpo;
+    btn.dark = dark;
+    btn.light = light;
+    btn.theme = 0;
+
+    return btn;
+}
+
+void desenha_theme_button(ThemeButton btn)
+{
+    DrawCircle(btn.circle.x, btn.circle.y, btn.circle.radius, btn.circle.color);
+
+    if (!btn.theme)
+        DrawTexture(btn.light, btn.circle.x - btn.light.width / 2, btn.circle.y - btn.light.height / 2, WHITE);
+    else
+        DrawTexture(btn.dark, btn.circle.x - btn.dark.width / 2, btn.circle.y - btn.dark.height / 2, WHITE);
+}
+
+void desenhar_menu_rgb(MenuRGB menu)
+{
+    DrawRectangleRec(menu.rect_menu, (Color){50, 60, 90, 255});
+    DrawRectangleLines(menu.rect_menu.x, menu.rect_menu.y, menu.rect_menu.width, menu.rect_menu.height, (Color){100, 100, 100, 255});
+
+    DrawText("R: ", menu.rect_menu.x + 10, menu.rect_menu.y + menu.rect_menu.height / 2 - 15, 30, WHITE);
+    DrawRectangleRec(menu.rect_r, WHITE);
+
+    DrawText("G: ", menu.rect_r.x + menu.rect_r.width + 10, menu.rect_menu.y + menu.rect_menu.height / 2 - 15, 30, WHITE);
+    DrawRectangleRec(menu.rect_g, WHITE);
+
+    DrawText("B: ", menu.rect_g.x + menu.rect_g.width + 10, menu.rect_menu.y + menu.rect_menu.height / 2 - 15, 30, WHITE);
+    DrawRectangleRec(menu.rect_b, WHITE);
+
+    DrawText("A: ", menu.rect_b.x + menu.rect_b.width + 10, menu.rect_menu.y + menu.rect_menu.height / 2 - 15, 30, WHITE);
+    DrawRectangleRec(menu.rect_a, WHITE);
+
+    Rectangle rec_aux = {menu.rect_r.x - 1, menu.rect_r.y - 1, menu.rect_r.width + 2, menu.rect_r.height + 2};
+    DrawRectangleLinesEx(rec_aux, 3, (Color){255, 0, 50, 255});
+}
+
+MenuRGB criar_menu_rgb(Rectangle pos_menu)
+{
+    MenuRGB menu;
+    menu.selecao_input_atual = 0; // vermelho
+    menu.rect_menu = pos_menu;
+
+    menu.rect_r = (Rectangle){pos_menu.x + 40, pos_menu.y + pos_menu.height / 2 - 20, 100, 40};
+    menu.rect_g = (Rectangle){menu.rect_r.x + menu.rect_r.width + 40, pos_menu.y + pos_menu.height / 2 - 20, 100, 40};
+    menu.rect_b = (Rectangle){menu.rect_g.x + menu.rect_g.width + 40, pos_menu.y + pos_menu.height / 2 - 20, 100, 40};
+    menu.rect_a = (Rectangle){menu.rect_b.x + menu.rect_b.width + 40, pos_menu.y + pos_menu.height / 2 - 20, 100, 40};
+
+    return menu;
+}

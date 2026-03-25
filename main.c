@@ -161,11 +161,20 @@ void criar_grafo(Grafo *grafo, int direcionado, int ponderado)
     grafo->ponderado = ponderado;
 }
 
-void desenha_grafo(Grafo *grafo, Font font, float zoom)
+void desenha_grafo(Grafo *grafo, Font font, float zoom, bool theme)
 {
+    Color cor_aresta = BLACK;
+
+    if (theme)
+        cor_aresta = WHITE;
+
     for (int i = 0; i < grafo->quant_a; i++)
     {
         Aresta *a = &grafo->arestas[i];
+
+        if ((a->cor.b == 0 && a->cor.r == 0 && a->cor.g == 0) || (a->cor.b == 255 && a->cor.r == 255 && a->cor.g == 255)) // Preto ou Branco
+            a->cor = cor_aresta;
+
         Vector2 start = {
             grafo->vertices[a->vertice[0]].v.x,
             grafo->vertices[a->vertice[0]].v.y};
@@ -226,7 +235,7 @@ void desenha_grafo(Grafo *grafo, Font font, float zoom)
             if (grafo->direcionado)
             {
                 float angle = atan2f(p2.y - c2.y, p2.x - c2.x) * RAD2DEG - 90.0f;
-                DrawPoly(p2, 3, 5, angle, BLACK);
+                DrawPoly(p2, 3, 5, angle, a->cor);
             }
 
             a->startpos = p1;
@@ -252,7 +261,7 @@ void desenha_grafo(Grafo *grafo, Font font, float zoom)
             // compensação correta para DrawPoly
             angle -= 90;
 
-            DrawPoly(tip, 3, 5, angle, BLACK);
+            DrawPoly(tip, 3, 5, angle, a->cor);
         }
 
         a->startpos = start;
@@ -1025,9 +1034,11 @@ int main()
 
     bool moving_vertex = false;
     bool moving_cam = false;
+    bool exibir_hud = true;
     int vertice_movendo_atual = 0;
     int vertices_selecionados[2] = {-1, -1};
     int aresta_selecionada = -1;
+    Color cor_fundo = RAYWHITE;
 
     SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_WINDOW_RESIZABLE);
     InitWindow(screen_w, screen_h, "Grafo");
@@ -1044,8 +1055,12 @@ int main()
     MenuEdicao *menu_criacao_k_completo = criar_menu_edicao("Criar K Completo", "Quantidade de vértices:", (Rectangle){screen_w - 470, 460, 200, 100}, 3);
     MenuBotoes *menu_botoes = criar_menu_btn((Rectangle){GetScreenWidth() - 450, 80, 400, GetScreenHeight()});
     SandwichMenu btn_abrir_menu = criar_menu_sanduiche("docs/assets/menu_icon.png", (Vector2){GetScreenWidth() - 50, 50}, 20);
+    ThemeButton btn_mudar_tema = criar_menu_tema((Circle){GetScreenWidth() - 100, 50, 20, (Color){50, 60, 90, 255}}, (Texture2D){0}, (Texture2D){0});
+    MenuRGB menu_rgb_vertice = criar_menu_rgb((Rectangle){GetScreenWidth() / 2, GetScreenHeight() / 2, 650, 200});
 
     Texture2D ze = LoadTexture("docs/assets/ze_do_grafo.png");
+    btn_mudar_tema.light = LoadTexture("docs/assets/light_mode.png");
+    btn_mudar_tema.dark = LoadTexture("docs/assets/dark_mode.png");
     Font font = LoadFont("docs/fonts/Oswald.ttf");
 
     add_button_menu(menu_botoes, RED, "Criar Vertice");
@@ -1161,7 +1176,7 @@ int main()
             limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
             menu_criacao_k_completo->ativa = false;
             menu_edicao_aresta->ativa = true;
-            menu_edicao_aresta->rect_menu.x = GetScreenWidth() - 470;
+            menu_edicao_aresta->rect_menu.x = GetScreenWidth() - 670;
         }
 
         if (onButtonClickScroll(&menu_botoes->list_btn[4], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto && vertices_selecionados[0] != -1 && !moving_cam) // bfs
@@ -1191,7 +1206,7 @@ int main()
             limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
             menu_criacao_k_completo->ativa = true;
             menu_edicao_aresta->ativa = false;
-            menu_criacao_k_completo->rect_menu.x = GetScreenWidth() - 550;
+            menu_criacao_k_completo->rect_menu.x = GetScreenWidth() - 850;
         }
 
         if (((onButtonClickScroll(&menu_botoes->list_btn[8], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto) || IsKeyPressedRepeat(KEY_DELETE)) && !moving_cam) // excluir grafo_global
@@ -1204,7 +1219,7 @@ int main()
             criar_grafo(grafo_global, direcionado, ponderado);
         }
 
-        if (((onButtonClickScroll(&menu_botoes->list_btn[9], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto) ) && !moving_cam) // excluir grafo
+        if (((onButtonClickScroll(&menu_botoes->list_btn[9], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto) || IsKeyPressed(KEY_P)) && !moving_cam) // excluir grafo
         {
             limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
             grafo_global->ponderado = !grafo_global->ponderado;
@@ -1215,7 +1230,7 @@ int main()
                 strcpy(menu_botoes->list_btn[9].text, "Trocar Para Ponderado");
         }
 
-        if (((onButtonClickScroll(&menu_botoes->list_btn[10], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto)) && !moving_cam) // excluir grafo
+        if (((onButtonClickScroll(&menu_botoes->list_btn[10], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto) || IsKeyPressed(KEY_O)) && !moving_cam) // excluir grafo
         {
             limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
             unificar_arestas(grafo_global);
@@ -1241,6 +1256,12 @@ int main()
             limpar_selecao(vertices_selecionados, &aresta_selecionada);
             limpar_animacao(grafo_global, &bfs_anim, &dfs_anim);
             exportar_lista_adj(grafo_global);
+        }
+
+        if (IsKeyPressed(KEY_HOME))
+        {
+            camera.target = (Vector2){1000, 1000};
+            camera.zoom = 0.5f;
         }
 
         if (menu_criacao_k_completo->ativa)
@@ -1286,6 +1307,14 @@ int main()
             }
         }
 
+        if (IsKeyPressed(KEY_H))
+            exibir_hud = !exibir_hud;
+
+        if (!exibir_hud)
+        {
+            menu_botoes->aberto = false;
+        }
+
         fechar_menu(menu_criacao_k_completo, mousepoint);
         fechar_menu(menu_edicao_aresta, mousepoint);
         scroll_menu_botoes(menu_botoes);
@@ -1298,48 +1327,77 @@ int main()
             }
         }
 
+        if (CheckCollisionPointCircle(mousepoint, (Vector2){btn_mudar_tema.circle.x, btn_mudar_tema.circle.y}, btn_abrir_menu.radius))
+        {
+            if (IsMouseButtonReleased(MOUSE_LEFT_BUTTON))
+            {
+                btn_mudar_tema.theme = !btn_mudar_tema.theme; // Abre ou fecha o menu
+
+                if (btn_mudar_tema.theme)
+                    cor_fundo = (Color){30, 40, 70, 255};
+                else
+                    cor_fundo = RAYWHITE;
+            }
+        }
+
         BeginDrawing();
-        ClearBackground(RAYWHITE);
+        ClearBackground(cor_fundo);
         BeginMode2D(camera);
 
         DrawTexture(ze, 100, 50000, WHITE);
 
-        desenha_grafo(grafo_global, font, camera.zoom);
+        desenha_grafo(grafo_global, font, camera.zoom, btn_mudar_tema.theme);
         desenha_selecao_vertice(grafo_global, vertices_selecionados);
         update_bfs(grafo_global, &bfs_anim);
         update_dfs(grafo_global, &dfs_anim);
 
         EndMode2D();
 
-        desenhar_menu_sanduiche(btn_abrir_menu);
-        if (menu_botoes->aberto)
-            desenha_menu_botoes(menu_botoes);
-
-        if (menu_edicao_aresta->ativa)
+        if (exibir_hud)
         {
-            desenha_menu_edicao(menu_edicao_aresta);
-            DrawText(menu_edicao_aresta->input.buffer, menu_edicao_aresta->rect_menu.x + 90, menu_edicao_aresta->rect_menu.y + 45, 20, BLACK);
-        }
+            desenhar_menu_sanduiche(btn_abrir_menu);
+            if (menu_botoes->aberto)
+                desenha_menu_botoes(menu_botoes);
 
-        if (menu_criacao_k_completo->ativa)
-        {
-            desenha_menu_edicao(menu_criacao_k_completo);
-            DrawText(menu_criacao_k_completo->input.buffer, menu_criacao_k_completo->rect_menu.x + menu_criacao_k_completo->rect_menu.width - 120, menu_criacao_k_completo->rect_menu.y + 45, 20, BLACK);
-        }
+            if (menu_edicao_aresta->ativa)
+            {
+                desenha_menu_edicao(menu_edicao_aresta);
+                DrawText(menu_edicao_aresta->input.buffer, menu_edicao_aresta->rect_menu.x + 90, menu_edicao_aresta->rect_menu.y + 45, 20, BLACK);
+            }
 
-        DrawText(TextFormat("Vertices: %d", grafo_global->quant_v), 10, 10, 20, BLACK);
-        DrawText(TextFormat("Arestas: %d", grafo_global->quant_a), 10, 40, 20, BLACK);
-        DrawText(TextFormat("FPS: %d", GetFPS()), 10, 70, 20, BLACK);
-        DrawText(TextFormat("Grafo %s %s", grafo_global->direcionado ? "Orientado" : "Não Orientado", grafo_global->ponderado ? "Ponderado" : "Não Ponderado"), 10, 100, 20, BLACK);
+            if (menu_criacao_k_completo->ativa)
+            {
+                desenha_menu_edicao(menu_criacao_k_completo);
+                DrawText(menu_criacao_k_completo->input.buffer, menu_criacao_k_completo->rect_menu.x + menu_criacao_k_completo->rect_menu.width - 120, menu_criacao_k_completo->rect_menu.y + 45, 20, BLACK);
+            }
+
+            desenha_theme_button(btn_mudar_tema);
+           // desenhar_menu_rgb(menu_rgb_vertice);
+
+            DrawText(TextFormat("Vertices: %d", grafo_global->quant_v), 10, 10, 20, BLACK);
+            DrawText(TextFormat("Arestas: %d", grafo_global->quant_a), 10, 40, 20, BLACK);
+            DrawText(TextFormat("FPS: %d", GetFPS()), 10, 70, 20, BLACK);
+            DrawText(TextFormat("Grafo %s %s", grafo_global->direcionado ? "Orientado" : "Não Orientado", grafo_global->ponderado ? "Ponderado" : "Não Ponderado"), 10, 100, 20, BLACK);
+        }
 
         EndDrawing();
     };
 
     UnloadTexture(ze);
     UnloadTexture(btn_abrir_menu.img);
+    UnloadTexture(btn_mudar_tema.dark);
+    UnloadTexture(btn_mudar_tema.light);
 
     CloseWindow();
     free(menu_criacao_k_completo);
     free(menu_edicao_aresta);
+
+    for (size_t i = 0; i < menu_botoes->quant_btn; i++)
+    {
+        free(menu_botoes->list_btn[i].text);
+    }
+
+    free(menu_botoes);
+
     destroy_grafo(grafo_global);
 }
