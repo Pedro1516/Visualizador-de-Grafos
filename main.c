@@ -1059,8 +1059,8 @@ int main()
     int vertice_movendo_atual = 0;
     int vertices_selecionados[2] = {-1, -1};
     int aresta_selecionada = -1;
-    Color cor_fundo = RAYWHITE;
-    Color cor_fonte = BLACK;
+    Color cor_fundo = (Color){30, 40, 70, 255};
+    Color cor_fonte = WHITE;
     Color cor = {0, 0, 0, 255};
 
     SetConfigFlags(FLAG_MSAA_4X_HINT | FLAG_WINDOW_RESIZABLE);
@@ -1483,6 +1483,8 @@ int main()
 
             if (btn_mudar_tema.theme)
                 cor_fonte = WHITE;
+            else
+                cor_fonte = BLACK;
 
             DrawText(TextFormat("Vertices: %d", grafo_global->quant_v), 10, 10, 20, cor_fonte);
             DrawText(TextFormat("Arestas: %d", grafo_global->quant_a), 10, 40, 20, cor_fonte);

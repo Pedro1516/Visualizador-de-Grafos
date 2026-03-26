@@ -62,6 +62,7 @@ void drawButtonRec(Button *button, Rectangle rect, int font_size)
 
 void drawButton(Button *button, int font_size)
 {
+    Color cor_fonte = BLACK;
     if (button->sombra)
     {
         font_size = font_size * button->rect.height * 0.02;
@@ -73,7 +74,7 @@ void drawButton(Button *button, int font_size)
         DrawRectangleRounded(sombra, 0.5, 0, (Color){100, 0, 0, 255});
         // Desenha botão
         DrawRectangleRounded(button->rect, 0.5, 0, button->color);
-        DrawText(button->text, button->rect.x + button->rect.width / 2 - text_size / 2, button->rect.y + button->rect.height / 2 - font_size / 2, font_size, WHITE);
+        DrawText(button->text, button->rect.x + button->rect.width / 2 - text_size / 2, button->rect.y + button->rect.height / 2 - font_size / 2, font_size, cor_fonte);
     }
     else
     {
@@ -83,7 +84,7 @@ void drawButton(Button *button, int font_size)
         aux.y += button->rect.height * 0.2;
         // Desenha botão
         DrawRectangleRounded(aux, 0.5, 0, button->color);
-        DrawText(button->text, aux.x + aux.width / 2 - text_size / 2, aux.y + aux.height / 2 - font_size / 2, font_size, WHITE);
+        DrawText(button->text, aux.x + aux.width / 2 - text_size / 2, aux.y + aux.height / 2 - font_size / 2, font_size, cor_fonte);
     }
 }
 
@@ -260,7 +261,7 @@ ThemeButton criar_menu_tema(Circle corpo, Texture2D dark, Texture2D light)
     btn.circle = corpo;
     btn.dark = dark;
     btn.light = light;
-    btn.theme = 0;
+    btn.theme = 1;
 
     return btn;
 }
@@ -310,7 +311,7 @@ MenuRGB criar_menu_rgb(Rectangle pos_menu)
     menu.rect_g = (Rectangle){menu.rect_r.x + menu.rect_r.width + 40, pos_menu.y + 20, 100, 40};
     menu.rect_b = (Rectangle){menu.rect_g.x + menu.rect_g.width + 40, pos_menu.y + 20, 100, 40};
     menu.rect_a = (Rectangle){menu.rect_b.x + menu.rect_b.width + 40, pos_menu.y + 20, 100, 40};
-    menu.confirm = create_button_rect((Rectangle){pos_menu.x + pos_menu.width - 130, pos_menu.y + pos_menu.height - 60, 100, 40}, RED, "Aplicar");
+    menu.confirm = create_button_rect((Rectangle){pos_menu.x + pos_menu.width - 130, pos_menu.y + pos_menu.height - 60, 100, 40}, (Color){50, 60, 131, 255}, "Aplicar");
 
     menu.r.buffer = (char *)calloc(3, sizeof(char));
     menu.g.buffer = (char *)calloc(3, sizeof(char));
