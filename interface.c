@@ -249,7 +249,7 @@ SandwichMenu criar_menu_sanduiche(char *icon, Vector2 pos, int radius)
     return menu;
 }
 
-void desenhar_menu_sanduiche(SandwichMenu menu)
+void desenha_menu_sanduiche(SandwichMenu menu)
 {
     DrawCircle(menu.x, menu.y, menu.radius, (Color){50, 60, 90, 255});
     DrawTexture(menu.img, menu.x - menu.img.width / 2, menu.y - menu.img.height / 2, WHITE);
@@ -276,26 +276,32 @@ void desenha_theme_button(ThemeButton btn)
         DrawTexture(btn.dark, btn.circle.x - btn.dark.width / 2, btn.circle.y - btn.dark.height / 2, WHITE);
 }
 
-void desenhar_menu_rgb(MenuRGB menu)
+void desenha_menu_rgb(MenuRGB menu, Font font)
 {
     DrawRectangleRounded(menu.rect_menu, 0.1f, 2, (Color){50, 60, 90, 255});
     DrawRectangleRoundedLines(menu.rect_menu, 0.1f, 2, (Color){100, 100, 100, 255});
 
-    DrawText("R: ", menu.rect_menu.x + 10, menu.rect_menu.y + 25, 30, WHITE);
+    DrawTextEx(font, "R:", (Vector2){menu.rect_r.x - 30, menu.rect_r.y + 5}, 40, 0.1f, WHITE);
     DrawRectangleRec(menu.rect_r, WHITE);
+    DrawText(menu.r.buffer, menu.rect_r.x + 10, menu.rect_r.y + 10, 20, BLACK);
 
-    DrawText("G: ", menu.rect_r.x + menu.rect_r.width + 10, menu.rect_menu.y + 25, 30, WHITE);
+    DrawTextEx(font, "G:", (Vector2){menu.rect_g.x - 30, menu.rect_g.y + 5}, 40, 0.1f, WHITE);
     DrawRectangleRec(menu.rect_g, WHITE);
+    DrawText(menu.g.buffer, menu.rect_g.x + 10, menu.rect_g.y + 10, 20, BLACK);
 
-    DrawText("B: ", menu.rect_g.x + menu.rect_g.width + 10, menu.rect_menu.y + 25, 30, WHITE);
+    DrawTextEx(font, "B: ", (Vector2){menu.rect_b.x - 30, menu.rect_b.y + 5}, 40, 0.1f, WHITE);
     DrawRectangleRec(menu.rect_b, WHITE);
+    DrawText(menu.b.buffer, menu.rect_b.x + 10, menu.rect_b.y + 10, 20, BLACK);
 
-    DrawText("A: ", menu.rect_b.x + menu.rect_b.width + 10, menu.rect_menu.y + 25, 30, WHITE);
+    DrawTextEx(font, "A: ", (Vector2){menu.rect_a.x - 30, menu.rect_a.y + 5}, 40, 0.1f, WHITE);
     DrawRectangleRec(menu.rect_a, WHITE);
+    DrawText(menu.a.buffer, menu.rect_a.x + 10, menu.rect_a.y + 10, 20, BLACK);
 
     Rectangle rec_list[4] = {menu.rect_r, menu.rect_g, menu.rect_b, menu.rect_a};
     Rectangle rec_aux = {rec_list[menu.selecao_input_atual].x - 1, rec_list[menu.selecao_input_atual].y - 1, rec_list[menu.selecao_input_atual].width + 2, rec_list[menu.selecao_input_atual].height + 2};
     DrawRectangleLinesEx(rec_aux, 3, (Color){255, 0, 50, 255});
+
+    desenha_roda_de_cor(menu.colorpicker);
 
     drawButton(&menu.confirm, 30);
 }
@@ -307,10 +313,10 @@ MenuRGB criar_menu_rgb(Rectangle pos_menu)
     menu.rect_menu = pos_menu;
     menu.aberto = false;
 
-    menu.rect_r = (Rectangle){pos_menu.x + 40, pos_menu.y + 20, 100, 40};
-    menu.rect_g = (Rectangle){menu.rect_r.x + menu.rect_r.width + 40, pos_menu.y + 20, 100, 40};
-    menu.rect_b = (Rectangle){menu.rect_g.x + menu.rect_g.width + 40, pos_menu.y + 20, 100, 40};
-    menu.rect_a = (Rectangle){menu.rect_b.x + menu.rect_b.width + 40, pos_menu.y + 20, 100, 40};
+    menu.rect_r = (Rectangle){pos_menu.x + pos_menu.width - 150, pos_menu.y + 20, 100, 40};
+    menu.rect_g = (Rectangle){pos_menu.x + pos_menu.width - 150, menu.rect_r.y + 60, 100, 40};
+    menu.rect_b = (Rectangle){pos_menu.x + pos_menu.width - 150, menu.rect_g.y + 60, 100, 40};
+    menu.rect_a = (Rectangle){pos_menu.x + pos_menu.width - 150, menu.rect_b.y + 60, 100, 40};
     menu.confirm = create_button_rect((Rectangle){pos_menu.x + pos_menu.width - 130, pos_menu.y + pos_menu.height - 60, 100, 40}, (Color){50, 60, 131, 255}, "Aplicar");
 
     menu.r.buffer = (char *)calloc(3, sizeof(char));
@@ -328,5 +334,87 @@ MenuRGB criar_menu_rgb(Rectangle pos_menu)
     menu.b.limit_char = 3;
     menu.a.limit_char = 3;
 
+    menu.colorpicker = (ColorPicker){64, {menu.rect_menu.x + menu.rect_menu.width / 2 - 75, menu.rect_menu.y + menu.rect_menu.height / 2}, (Vector2){menu.rect_menu.x + menu.rect_menu.width / 2 - 75, menu.rect_menu.y + menu.rect_menu.height / 2}, 200.0f, false, 1.0f, (Color){255, 255, 255, 255}};
+
     return menu;
+}
+
+void desenha_roda_de_cor(ColorPicker roda)
+{
+    rlBegin(RL_TRIANGLES);
+    for (unsigned int i = 0; i < roda.triangle_count; i++)
+    {
+        float angleOffset = ((PI * 2.0f) / (float)roda.triangle_count);
+        float angle = angleOffset * (float)i;
+        float angleOffsetCalculated = ((float)i + 1) * angleOffset;
+        Vector2 scale = (Vector2){roda.pointScale, roda.pointScale};
+
+        Vector2 offset = Vector2Multiply((Vector2){sinf(angle), -cosf(angle)}, scale);
+        Vector2 offset2 = Vector2Multiply((Vector2){sinf(angleOffsetCalculated), -cosf(angleOffsetCalculated)}, scale);
+
+        Vector2 position = Vector2Add(roda.center, offset);
+        Vector2 position2 = Vector2Add(roda.center, offset2);
+
+        float angleNonRadian = (angle / (2.0f * PI)) * 360.0f;
+        float angleNonRadianOffset = (angleOffset / (2.0f * PI)) * 360.0f;
+
+        Color currentColor = ColorFromHSV(angleNonRadian, 1.0f, 1.0f);
+        Color offsetColor = ColorFromHSV(angleNonRadian + angleNonRadianOffset, 1.0f, 1.0f);
+
+        // RL_TRIANGLES expects three vertices per triangle
+        rlColor4ub(currentColor.r, currentColor.g, currentColor.b, currentColor.a);
+        rlVertex2f(position.x, position.y);
+        rlColor4f(roda.hsv_value, roda.hsv_value, roda.hsv_value, 1.0f);
+        rlVertex2f(roda.center.x, roda.center.y);
+        rlColor4ub(offsetColor.r, offsetColor.g, offsetColor.b, offsetColor.a);
+        rlVertex2f(position2.x, position2.y);
+    }
+    rlEnd();
+
+    Color handleColor = BLACK;
+
+    if (Vector2Distance(roda.center, roda.selector) / roda.pointScale <= 0.5f && roda.hsv_value <= 0.5f)
+    {
+        handleColor = DARKGRAY;
+    }
+
+    // Draw the color handle
+    DrawCircleLinesV(roda.selector, 5.0f, handleColor);
+}
+
+void atualiza_cor_roda(MenuRGB *menu, Vector2 mousepoint)
+{
+
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && Vector2Distance(GetMousePosition(), menu->colorpicker.center) <= menu->colorpicker.pointScale + 10.0f)
+    {
+        menu->colorpicker.selecao_ativa = true;
+    }
+
+    if (menu->colorpicker.selecao_ativa)
+    {
+        if (menu->colorpicker.selecao_ativa)
+            menu->colorpicker.selector = mousepoint;
+
+        float distance = Vector2Distance(menu->colorpicker.center, menu->colorpicker.selector) / menu->colorpicker.pointScale;
+
+        float angle = ((Vector2Angle((Vector2){0.0f, -menu->colorpicker.pointScale}, Vector2Subtract(menu->colorpicker.center, menu->colorpicker.selector)) / PI + 1.0f) / 2.0f);
+        if (menu->colorpicker.selecao_ativa && distance > 1.0f)
+            menu->colorpicker.selector = Vector2Add((Vector2){sinf(angle * (PI * 2.0f)) * menu->colorpicker.pointScale, -cosf(angle * (PI * 2.0f)) * menu->colorpicker.pointScale}, menu->colorpicker.center);
+
+        float angle360 = angle * 360.0f;
+        float valueActual = Clamp(distance, 0.0f, 1.0f);
+        menu->colorpicker.cor_atual = ColorLerp((Color){(int)(menu->colorpicker.hsv_value * 255.0f), (int)(menu->colorpicker.hsv_value * 255.0f), (int)(menu->colorpicker.hsv_value * 255.0f), 255}, ColorFromHSV(angle360, Clamp(distance, 0.0f, 1.0f), 1.0f), valueActual);
+
+        snprintf(menu->r.buffer, sizeof(menu->r.buffer), "%d", menu->colorpicker.cor_atual.r);
+        menu->r.char_inserted = (menu->r.buffer < 10) ? 1 : (menu->r.buffer < 100) ? 2 : 3;
+
+        snprintf(menu->g.buffer, sizeof(menu->g.buffer), "%d", menu->colorpicker.cor_atual.g);
+        menu->g.char_inserted = (menu->g.buffer < 10) ? 1 : (menu->g.buffer < 100) ? 2 : 3;
+
+        snprintf(menu->b.buffer, sizeof(menu->b.buffer), "%d", menu->colorpicker.cor_atual.b);
+        menu->b.char_inserted = (menu->b.buffer < 10) ? 1 : (menu->b.buffer < 100) ? 2 : 3;
+    }
+
+    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+        menu->colorpicker.selecao_ativa = false;
 }

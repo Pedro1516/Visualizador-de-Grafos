@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <raylib.h>
+#include <raymath.h>
 #include <string.h>
+#include <rlgl.h>
 
 typedef struct
 {
@@ -64,15 +66,29 @@ typedef struct
 
 typedef struct
 {
-    Rectangle rect_menu; 
+    int triangle_count;
+    Vector2 center;
+    Vector2 selector;
+    float pointScale;
+    bool selecao_ativa;
+    float hsv_value;
+    Color cor_atual;
+
+} ColorPicker;
+
+typedef struct
+{
+    Rectangle rect_menu;
     Rectangle rect_r;
     Rectangle rect_g;
     Rectangle rect_b;
     Rectangle rect_a;
+    ColorPicker colorpicker;
     InputText r;
     InputText g;
     InputText b;
     InputText a;
+
     Button confirm;
     int selecao_input_atual;
     bool aberto;
@@ -90,10 +106,13 @@ void drawButton(Button *button, int font_size);
 void desenha_menu_edicao(MenuEdicao *menu);
 void desenha_menu_botoes(MenuBotoes *menu);
 void desenha_theme_button(ThemeButton btn);
-void desenhar_menu_sanduiche(SandwichMenu menu);
-void desenhar_menu_rgb(MenuRGB menu);
+void desenha_menu_sanduiche(SandwichMenu menu);
+void desenha_menu_rgb(MenuRGB menu, Font font);
 
 void add_button_menu(MenuBotoes *menu, Color color, char *label);
 void scroll_menu_botoes(MenuBotoes *menu);
 bool onButtonClickScroll(Button *button, Vector2 mousepoint, float scrollY, Rectangle menuRect);
 bool onButtonClick(Button *button, Vector2 mousepoint);
+void atualiza_cor_roda(MenuRGB *menu, Vector2 mousepoint);
+
+void desenha_roda_de_cor(ColorPicker roda);
