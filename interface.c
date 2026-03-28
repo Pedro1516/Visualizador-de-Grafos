@@ -405,14 +405,14 @@ void atualiza_cor_roda(MenuRGB *menu, Vector2 mousepoint)
         float valueActual = Clamp(distance, 0.0f, 1.0f);
         menu->colorpicker.cor_atual = ColorLerp((Color){(int)(menu->colorpicker.hsv_value * 255.0f), (int)(menu->colorpicker.hsv_value * 255.0f), (int)(menu->colorpicker.hsv_value * 255.0f), 255}, ColorFromHSV(angle360, Clamp(distance, 0.0f, 1.0f), 1.0f), valueActual);
 
-        snprintf(menu->r.buffer, sizeof(menu->r.buffer), "%d", menu->colorpicker.cor_atual.r);
-        menu->r.char_inserted = (menu->r.buffer < 10) ? 1 : (menu->r.buffer < 100) ? 2 : 3;
+        snprintf(menu->r.buffer, 5, "%d", menu->colorpicker.cor_atual.r);
+        menu->r.char_inserted = (atoi(menu->r.buffer) < 10) ? 1 : (atoi(menu->r.buffer) < 100) ? 2 : 3;
 
-        snprintf(menu->g.buffer, sizeof(menu->g.buffer), "%d", menu->colorpicker.cor_atual.g);
-        menu->g.char_inserted = (menu->g.buffer < 10) ? 1 : (menu->g.buffer < 100) ? 2 : 3;
+        snprintf(menu->g.buffer, 5, "%d", menu->colorpicker.cor_atual.g);
+        menu->g.char_inserted = (atoi(menu->g.buffer) < 10) ? 1 : (atoi(menu->g.buffer) < 100) ? 2 : 3;
 
-        snprintf(menu->b.buffer, sizeof(menu->b.buffer), "%d", menu->colorpicker.cor_atual.b);
-        menu->b.char_inserted = (menu->b.buffer < 10) ? 1 : (menu->b.buffer < 100) ? 2 : 3;
+        snprintf(menu->b.buffer, 5, "%d", menu->colorpicker.cor_atual.b);
+        menu->b.char_inserted = (atoi(menu->b.buffer) < 10) ? 1 : (atoi(menu->b.buffer) < 100) ? 2 : 3;
     }
 
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
