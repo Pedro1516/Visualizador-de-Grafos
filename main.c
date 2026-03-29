@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <raylib.h>
 #include <raymath.h>
+#include <math.h>
 #include "interface.h"
 #include <emscripten.h>
 
@@ -28,6 +29,7 @@ typedef struct vertice
     int *arestas;
     int quant_a;
     int limit_a;
+    Color font_color;
 } Vertice;
 
 typedef struct grafo
@@ -114,6 +116,7 @@ void add_vertice(Grafo *grafo, int posx, int posy, Color color)
     grafo->vertices[grafo->quant_v - 1].quant_a = 0;
     grafo->vertices[grafo->quant_v - 1].limit_a = 5;
     grafo->vertices[grafo->quant_v - 1].arestas = (int *)malloc(sizeof(int) * 5);
+    grafo->vertices[grafo->quant_v - 1].font_color = BLACK;
 }
 
 void add_aresta(Grafo *grafo, int v1, int v2, int peso)
@@ -293,7 +296,7 @@ void desenha_grafo(Grafo *grafo, Font font, float zoom, bool theme)
         Circle v = grafo->vertices[i].v;
         int text_size = MeasureText(TextFormat("%d", i), 20);
         DrawCircle(v.x, v.y, v.radius, v.color);
-        DrawText(TextFormat("%d", i), v.x - text_size / 2, v.y - 10, 20, BLACK);
+        DrawText(TextFormat("%d", i), v.x - text_size / 2, v.y - 10, 20, grafo->vertices[i].font_color);
     }
 }
 
@@ -567,6 +570,9 @@ int add_aresta_selec(Grafo *grafo, int *vertices_selec)
 {
     int v1 = vertices_selec[0];
     int v2 = vertices_selec[1];
+
+    if (v1 == -1)
+        return 0;
 
     if (v2 == -1)
         v2 = v1;
@@ -1041,6 +1047,21 @@ void mudar_cor_grafo(Grafo *grafo, Color cor, int *v_selec)
     }
 }
 
+double luminancia(Color c)
+{
+    return 0.2126 * c.r + 0.7152 * c.g + 0.0722 * c.b;
+}
+
+void constraste_vertice(Vertice *vertice)
+{
+    double L = luminancia(vertice->v.color);
+
+    if (L > 186)
+        vertice->font_color = BLACK;
+    else
+        vertice->font_color = WHITE;
+}
+
 int main()
 {
     int screen_w = 1280;
@@ -1107,7 +1128,7 @@ int main()
         Vector2 mousepoint = GetMousePosition();
         Vector2 mouseWorldPos = GetScreenToWorld2D(mousepoint, camera);
 
-        if (moving_cam == false)
+        if (!moving_cam && !((CheckCollisionPointRec(mousepoint, menu_botoes->rect) && menu_botoes->aberto) || (CheckCollisionPointRec(mousepoint, menu_rgb_vertice.rect_menu) && menu_rgb_vertice.aberto)))
             check_collision_vertex(grafo_global, &moving_vertex, mouseWorldPos, &vertice_movendo_atual);
 
         if (IsWindowResized())
@@ -1128,7 +1149,7 @@ int main()
             set_zoom(&camera, mousepoint, mouseWorldPos);
         }
 
-        if (!moving_cam)
+        if (!moving_cam && !((CheckCollisionPointRec(mousepoint, menu_botoes->rect) && menu_botoes->aberto) || (CheckCollisionPointRec(mousepoint, menu_rgb_vertice.rect_menu) && menu_rgb_vertice.aberto)))
         {
             int aresta_anterior = aresta_selecionada;
 
@@ -1378,7 +1399,22 @@ int main()
             }
 
             if (onButtonClick(&menu_rgb_vertice.confirm, mousepoint))
+            {
                 mudar_cor_grafo(grafo_global, menu_rgb_vertice.colorpicker.cor_atual, vertices_selecionados);
+
+                if (vertices_selecionados[0] != -1)
+                    constraste_vertice(&grafo_global->vertices[vertices_selecionados[0]]);
+                if (vertices_selecionados[1] != -1)
+                    constraste_vertice(&grafo_global->vertices[vertices_selecionados[1]]);
+
+                if (vertices_selecionados[0] = -1, vertices_selecionados[1] = -1)
+                {
+                    for (size_t i = 0; i < grafo_global->quant_v; i++)
+                    {
+                        constraste_vertice(&grafo_global->vertices[i]);
+                    }
+                }
+            }
         }
 
         if (IsKeyPressed(KEY_H))

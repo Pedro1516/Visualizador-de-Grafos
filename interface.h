@@ -94,6 +94,11 @@ typedef struct
     bool aberto;
 } MenuRGB;
 
+typedef struct{
+    Rectangle rect;
+    float value;
+}Slider;
+
 SandwichMenu criar_menu_sanduiche(char *icon, Vector2 pos, int radius);
 ThemeButton criar_menu_tema(Circle corpo, Texture2D dark, Texture2D light);
 MenuEdicao *criar_menu_edicao(char *titulo, char *label, Rectangle rect_menu, int limit_char);
