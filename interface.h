@@ -83,6 +83,7 @@ typedef struct
     Rectangle rect_g;
     Rectangle rect_b;
     Rectangle rect_a;
+    Rectangle slider;
     ColorPicker colorpicker;
     InputText r;
     InputText g;
@@ -92,12 +93,9 @@ typedef struct
     Button confirm;
     int selecao_input_atual;
     bool aberto;
+    bool slider_ativo;
 } MenuRGB;
 
-typedef struct{
-    Rectangle rect;
-    float value;
-}Slider;
 
 SandwichMenu criar_menu_sanduiche(char *icon, Vector2 pos, int radius);
 ThemeButton criar_menu_tema(Circle corpo, Texture2D dark, Texture2D light);
@@ -119,5 +117,6 @@ void scroll_menu_botoes(MenuBotoes *menu);
 bool onButtonClickScroll(Button *button, Vector2 mousepoint, float scrollY, Rectangle menuRect);
 bool onButtonClick(Button *button, Vector2 mousepoint);
 void atualiza_cor_roda(MenuRGB *menu, Vector2 mousepoint);
+void atualiza_slider_rgb(MenuRGB *menu, Vector2 mousepoint);
 
 void desenha_roda_de_cor(ColorPicker roda);

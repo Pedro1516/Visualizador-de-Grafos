@@ -303,6 +303,13 @@ void desenha_menu_rgb(MenuRGB menu, Font font)
 
     desenha_roda_de_cor(menu.colorpicker);
 
+    float nova_altura = menu.slider.height - menu.slider.height * menu.colorpicker.hsv_value;
+    //  float novo_y = menu.slider.y + menu.slider.y * menu.colorpicker.hsv_value;
+    float novo_y = menu.slider.y;
+
+    DrawRectangleRec(menu.slider, (Color){200, 200, 200, 255});
+    DrawRectangle(menu.slider.x, novo_y, menu.slider.width, nova_altura, (Color){100, 100, 100, 255});
+
     drawButton(&menu.confirm, 30);
 }
 
@@ -312,22 +319,25 @@ MenuRGB criar_menu_rgb(Rectangle pos_menu)
     menu.selecao_input_atual = 0; // vermelho
     menu.rect_menu = pos_menu;
     menu.aberto = false;
+    menu.slider_ativo = false;
 
     menu.rect_r = (Rectangle){pos_menu.x + pos_menu.width - 150, pos_menu.y + 20, 100, 40};
     menu.rect_g = (Rectangle){pos_menu.x + pos_menu.width - 150, menu.rect_r.y + 60, 100, 40};
     menu.rect_b = (Rectangle){pos_menu.x + pos_menu.width - 150, menu.rect_g.y + 60, 100, 40};
     menu.rect_a = (Rectangle){pos_menu.x + pos_menu.width - 150, menu.rect_b.y + 60, 100, 40};
+    menu.slider = (Rectangle){pos_menu.x + pos_menu.width - 80, menu.rect_a.y + 80, 20, 100};
     menu.confirm = create_button_rect((Rectangle){pos_menu.x + pos_menu.width - 130, pos_menu.y + pos_menu.height - 60, 100, 40}, (Color){50, 60, 131, 255}, "Aplicar");
 
-    menu.r.buffer = (char *)calloc(3, sizeof(char));
-    menu.g.buffer = (char *)calloc(3, sizeof(char));
-    menu.b.buffer = (char *)calloc(3, sizeof(char));
-    menu.a.buffer = (char *)calloc(3, sizeof(char));
+    menu.r.buffer = (char *)calloc(4, sizeof(char));
+    menu.g.buffer = (char *)calloc(4, sizeof(char));
+    menu.b.buffer = (char *)calloc(4, sizeof(char));
+    menu.a.buffer = (char *)calloc(4, sizeof(char));
+    strcpy(menu.a.buffer, "255");
 
     menu.r.char_inserted = 0;
     menu.g.char_inserted = 0;
     menu.b.char_inserted = 0;
-    menu.a.char_inserted = 0;
+    menu.a.char_inserted = 3;
 
     menu.r.limit_char = 3;
     menu.g.limit_char = 3;
@@ -385,7 +395,7 @@ void desenha_roda_de_cor(ColorPicker roda)
 void atualiza_cor_roda(MenuRGB *menu, Vector2 mousepoint)
 {
 
-    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && Vector2Distance(GetMousePosition(), menu->colorpicker.center) <= menu->colorpicker.pointScale + 10.0f)
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && Vector2Distance(GetMousePosition(), menu->colorpicker.center) <= menu->colorpicker.pointScale + 10.0f && !menu->slider_ativo)
     {
         menu->colorpicker.selecao_ativa = true;
     }
@@ -406,15 +416,52 @@ void atualiza_cor_roda(MenuRGB *menu, Vector2 mousepoint)
         menu->colorpicker.cor_atual = ColorLerp((Color){(int)(menu->colorpicker.hsv_value * 255.0f), (int)(menu->colorpicker.hsv_value * 255.0f), (int)(menu->colorpicker.hsv_value * 255.0f), 255}, ColorFromHSV(angle360, Clamp(distance, 0.0f, 1.0f), 1.0f), valueActual);
 
         snprintf(menu->r.buffer, 5, "%d", menu->colorpicker.cor_atual.r);
-        menu->r.char_inserted = (atoi(menu->r.buffer) < 10) ? 1 : (atoi(menu->r.buffer) < 100) ? 2 : 3;
+        menu->r.char_inserted = (atoi(menu->r.buffer) < 10) ? 1 : (atoi(menu->r.buffer) < 100) ? 2
+                                                                                               : 3;
 
         snprintf(menu->g.buffer, 5, "%d", menu->colorpicker.cor_atual.g);
-        menu->g.char_inserted = (atoi(menu->g.buffer) < 10) ? 1 : (atoi(menu->g.buffer) < 100) ? 2 : 3;
+        menu->g.char_inserted = (atoi(menu->g.buffer) < 10) ? 1 : (atoi(menu->g.buffer) < 100) ? 2
+                                                                                               : 3;
 
         snprintf(menu->b.buffer, 5, "%d", menu->colorpicker.cor_atual.b);
-        menu->b.char_inserted = (atoi(menu->b.buffer) < 10) ? 1 : (atoi(menu->b.buffer) < 100) ? 2 : 3;
+        menu->b.char_inserted = (atoi(menu->b.buffer) < 10) ? 1 : (atoi(menu->b.buffer) < 100) ? 2
+                                                                                               : 3;
     }
 
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         menu->colorpicker.selecao_ativa = false;
+}
+
+void atualiza_slider_rgb(MenuRGB *menu, Vector2 mousepoint)
+{
+    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mousepoint, menu->slider))
+    {
+        menu->slider_ativo = true;
+    }
+
+    if (menu->slider_ativo)
+    {
+        float value = (mousepoint.y - menu->slider.y) / menu->slider.height;
+        value = Clamp(value, 0.0f, 1.0f);
+        menu->colorpicker.hsv_value = 1.0f - value;
+
+        int val_r = (int)(menu->colorpicker.cor_atual.r * menu->colorpicker.hsv_value);
+        int val_g = (int)(menu->colorpicker.cor_atual.g * menu->colorpicker.hsv_value);
+        int val_b = (int)(menu->colorpicker.cor_atual.b * menu->colorpicker.hsv_value);
+
+        snprintf(menu->r.buffer, menu->r.limit_char + 1, "%d", val_r);
+        menu->r.char_inserted = (val_r < 10) ? 1 : (val_r < 100) ? 2
+                                                                 : 3;
+
+        snprintf(menu->g.buffer, menu->g.limit_char + 1, "%d", val_g);
+        menu->g.char_inserted = (val_g < 10) ? 1 : (val_g < 100) ? 2
+                                                                 : 3;
+
+        snprintf(menu->b.buffer, menu->b.limit_char + 1, "%d", val_b);
+        menu->b.char_inserted = (val_b < 10) ? 1 : (val_b < 100) ? 2
+                                                                 : 3;
+    }
+
+    if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+        menu->slider_ativo = false;
 }

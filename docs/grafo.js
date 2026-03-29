@@ -71,7 +71,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /tmp/tmpsilo4qmc.js
+// include: /tmp/tmp9a_fw9fs.js
 
   if (!Module['expectedDataFileDownloads']) Module['expectedDataFileDownloads'] = 0;
   Module['expectedDataFileDownloads']++;
@@ -202,25 +202,25 @@ Module['FS_createPath']("/docs", "fonts", true, true);
     }
 
     }
-    loadPackage({"files": [{"filename": "/docs/assets/dark_mode.png", "start": 0, "end": 714}, {"filename": "/docs/assets/light_mode.png", "start": 714, "end": 1345}, {"filename": "/docs/assets/menu_icon.png", "start": 1345, "end": 1552}, {"filename": "/docs/assets/ze_do_grafo.png", "start": 1552, "end": 1215863}, {"filename": "/docs/fonts/Oswald.ttf", "start": 1215863, "end": 1384971}], "remote_package_size": 1384971});
+    loadPackage({"files": [{"filename": "/docs/assets/dark_mode.png", "start": 0, "end": 714}, {"filename": "/docs/assets/help.png", "start": 714, "end": 1630}, {"filename": "/docs/assets/light_mode.png", "start": 1630, "end": 2261}, {"filename": "/docs/assets/menu_icon.png", "start": 2261, "end": 2468}, {"filename": "/docs/assets/ze_do_grafo.png", "start": 2468, "end": 1216779}, {"filename": "/docs/fonts/Oswald.ttf", "start": 1216779, "end": 1385887}], "remote_package_size": 1385887});
 
   })();
 
-// end include: /tmp/tmpsilo4qmc.js
-// include: /tmp/tmpwfiaxfdm.js
+// end include: /tmp/tmp9a_fw9fs.js
+// include: /tmp/tmp7n_eql5i.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if ((typeof ENVIRONMENT_IS_WASM_WORKER != 'undefined' && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != 'undefined' && ENVIRONMENT_IS_AUDIO_WORKLET)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: /tmp/tmpwfiaxfdm.js
-// include: /tmp/tmpao_mdcf8.js
+  // end include: /tmp/tmp7n_eql5i.js
+// include: /tmp/tmpt22_cg4o.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: /tmp/tmpao_mdcf8.js
+  // end include: /tmp/tmpt22_cg4o.js
 
 
 var arguments_ = [];
