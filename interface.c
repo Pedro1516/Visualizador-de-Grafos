@@ -304,11 +304,11 @@ void desenha_menu_rgb(MenuRGB menu, Font font)
     desenha_roda_de_cor(menu.colorpicker);
 
     float nova_altura = menu.slider.height - menu.slider.height * menu.colorpicker.hsv_value;
-    //  float novo_y = menu.slider.y + menu.slider.y * menu.colorpicker.hsv_value;
-    float novo_y = menu.slider.y;
+    float novo_y = menu.slider.y + menu.slider.height * (1.0f - menu.colorpicker.hsv_value);
 
     DrawRectangleRec(menu.slider, (Color){200, 200, 200, 255});
-    DrawRectangle(menu.slider.x, novo_y, menu.slider.width, nova_altura, (Color){100, 100, 100, 255});
+    DrawRectangle(menu.slider.x, menu.slider.y, menu.slider.width, nova_altura, (Color){100, 100, 100, 255});
+    DrawRectangle(menu.slider.x - 2, novo_y - 3, menu.slider.width + 4, 6, WHITE);
 
     drawButton(&menu.confirm, 30);
 }
@@ -344,7 +344,7 @@ MenuRGB criar_menu_rgb(Rectangle pos_menu)
     menu.b.limit_char = 3;
     menu.a.limit_char = 3;
 
-    menu.colorpicker = (ColorPicker){64, {menu.rect_menu.x + menu.rect_menu.width / 2 - 75, menu.rect_menu.y + menu.rect_menu.height / 2}, (Vector2){menu.rect_menu.x + menu.rect_menu.width / 2 - 75, menu.rect_menu.y + menu.rect_menu.height / 2}, 200.0f, false, 1.0f, (Color){255, 255, 255, 255}};
+    menu.colorpicker = (ColorPicker){64, {menu.rect_menu.x + menu.rect_menu.width / 2 - 75, menu.rect_menu.y + menu.rect_menu.height / 2}, (Vector2){menu.rect_menu.x + menu.rect_menu.width / 2 - 75, menu.rect_menu.y + menu.rect_menu.height / 2}, 200.0f, false, 1.0f, 0, 1, (Color){255, 255, 255, 255}};
 
     return menu;
 }
@@ -368,8 +368,8 @@ void desenha_roda_de_cor(ColorPicker roda)
         float angleNonRadian = (angle / (2.0f * PI)) * 360.0f;
         float angleNonRadianOffset = (angleOffset / (2.0f * PI)) * 360.0f;
 
-        Color currentColor = ColorFromHSV(angleNonRadian, 1.0f, 1.0f);
-        Color offsetColor = ColorFromHSV(angleNonRadian + angleNonRadianOffset, 1.0f, 1.0f);
+        Color currentColor = ColorFromHSV(angleNonRadian, 1.0f, roda.hsv_value);
+        Color offsetColor = ColorFromHSV(angleNonRadian + angleNonRadianOffset, 1.0f, roda.hsv_value); 
 
         // RL_TRIANGLES expects three vertices per triangle
         rlColor4ub(currentColor.r, currentColor.g, currentColor.b, currentColor.a);
@@ -413,7 +413,10 @@ void atualiza_cor_roda(MenuRGB *menu, Vector2 mousepoint)
 
         float angle360 = angle * 360.0f;
         float valueActual = Clamp(distance, 0.0f, 1.0f);
-        menu->colorpicker.cor_atual = ColorLerp((Color){(int)(menu->colorpicker.hsv_value * 255.0f), (int)(menu->colorpicker.hsv_value * 255.0f), (int)(menu->colorpicker.hsv_value * 255.0f), 255}, ColorFromHSV(angle360, Clamp(distance, 0.0f, 1.0f), 1.0f), valueActual);
+
+        menu->colorpicker.hue = angle360;
+        menu->colorpicker.saturation = valueActual;
+        menu->colorpicker.cor_atual = ColorFromHSV(angle360, valueActual, menu->colorpicker.hsv_value);
 
         snprintf(menu->r.buffer, 5, "%d", menu->colorpicker.cor_atual.r);
         menu->r.char_inserted = (atoi(menu->r.buffer) < 10) ? 1 : (atoi(menu->r.buffer) < 100) ? 2
@@ -434,32 +437,32 @@ void atualiza_cor_roda(MenuRGB *menu, Vector2 mousepoint)
 
 void atualiza_slider_rgb(MenuRGB *menu, Vector2 mousepoint)
 {
-    if (IsMouseButtonDown(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mousepoint, menu->slider))
+    if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointRec(mousepoint, menu->slider))
     {
         menu->slider_ativo = true;
     }
 
     if (menu->slider_ativo)
     {
+
         float value = (mousepoint.y - menu->slider.y) / menu->slider.height;
         value = Clamp(value, 0.0f, 1.0f);
         menu->colorpicker.hsv_value = 1.0f - value;
 
-        int val_r = (int)(menu->colorpicker.cor_atual.r * menu->colorpicker.hsv_value);
-        int val_g = (int)(menu->colorpicker.cor_atual.g * menu->colorpicker.hsv_value);
-        int val_b = (int)(menu->colorpicker.cor_atual.b * menu->colorpicker.hsv_value);
+        Color cor_pura = ColorFromHSV(menu->colorpicker.hue, menu->colorpicker.saturation, menu->colorpicker.hsv_value);
 
-        snprintf(menu->r.buffer, menu->r.limit_char + 1, "%d", val_r);
-        menu->r.char_inserted = (val_r < 10) ? 1 : (val_r < 100) ? 2
-                                                                 : 3;
+        snprintf(menu->r.buffer, menu->r.limit_char + 1, "%d", cor_pura.r);
+        snprintf(menu->g.buffer, menu->g.limit_char + 1, "%d", cor_pura.g);
+        snprintf(menu->b.buffer, menu->b.limit_char + 1, "%d", cor_pura.b);
 
-        snprintf(menu->g.buffer, menu->g.limit_char + 1, "%d", val_g);
-        menu->g.char_inserted = (val_g < 10) ? 1 : (val_g < 100) ? 2
-                                                                 : 3;
+        menu->r.char_inserted = (cor_pura.r < 10) ? 1 : (cor_pura.r < 100) ? 2
+                                                                           : 3;
+        menu->g.char_inserted = (cor_pura.g < 10) ? 1 : (cor_pura.g < 100) ? 2
+                                                                           : 3;
+        menu->b.char_inserted = (cor_pura.b < 10) ? 1 : (cor_pura.b < 100) ? 2
+                                                                           : 3;
 
-        snprintf(menu->b.buffer, menu->b.limit_char + 1, "%d", val_b);
-        menu->b.char_inserted = (val_b < 10) ? 1 : (val_b < 100) ? 2
-                                                                 : 3;
+        menu->colorpicker.cor_atual = cor_pura;
     }
 
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))

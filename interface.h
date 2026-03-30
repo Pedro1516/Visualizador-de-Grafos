@@ -72,6 +72,8 @@ typedef struct
     float pointScale;
     bool selecao_ativa;
     float hsv_value;
+    float hue; 
+    float saturation;
     Color cor_atual;
 
 } ColorPicker;
@@ -95,7 +97,6 @@ typedef struct
     bool aberto;
     bool slider_ativo;
 } MenuRGB;
-
 
 SandwichMenu criar_menu_sanduiche(char *icon, Vector2 pos, int radius);
 ThemeButton criar_menu_tema(Circle corpo, Texture2D dark, Texture2D light);
