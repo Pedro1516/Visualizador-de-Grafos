@@ -468,3 +468,4 @@ void atualiza_slider_rgb(MenuRGB *menu, Vector2 mousepoint)
     if (IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         menu->slider_ativo = false;
 }
+
