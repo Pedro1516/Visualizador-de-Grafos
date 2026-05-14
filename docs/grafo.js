@@ -71,7 +71,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /tmp/tmpks6eodcf.js
+// include: /tmp/tmp8gj4orxz.js
 
   if (!Module['expectedDataFileDownloads']) Module['expectedDataFileDownloads'] = 0;
   Module['expectedDataFileDownloads']++;
@@ -206,21 +206,21 @@ Module['FS_createPath']("/docs", "fonts", true, true);
 
   })();
 
-// end include: /tmp/tmpks6eodcf.js
-// include: /tmp/tmpmubu2okt.js
+// end include: /tmp/tmp8gj4orxz.js
+// include: /tmp/tmposn6smiq.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if ((typeof ENVIRONMENT_IS_WASM_WORKER != 'undefined' && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != 'undefined' && ENVIRONMENT_IS_AUDIO_WORKLET)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: /tmp/tmpmubu2okt.js
-// include: /tmp/tmp99qs9dk2.js
+  // end include: /tmp/tmposn6smiq.js
+// include: /tmp/tmpun4pedyl.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: /tmp/tmp99qs9dk2.js
+  // end include: /tmp/tmpun4pedyl.js
 
 
 var arguments_ = [];
@@ -9920,51 +9920,51 @@ function checkIncomingModuleAPI() {
   ignoredModuleProp('onSbrkGrow');
 }
 var ASM_CONSTS = {
-  106808: ($0) => { var conteudo = UTF8ToString($0); downloadGrafo(conteudo); },  
- 106870: () => { abrirSeletorArquivo(); },  
- 106893: () => { if (document.fullscreenElement) return 1; },  
- 106939: () => { return Module.canvas.width; },  
- 106971: () => { return parseInt(Module.canvas.style.width); },  
- 107019: () => { document.exitFullscreen(); },  
- 107046: () => { setTimeout(function(){ Module.requestFullscreen(false, false); }, 100); },  
- 107118: () => { if (document.fullscreenElement) return 1; },  
- 107164: () => { return Module.canvas.width; },  
- 107196: () => { return screen.width; },  
- 107221: () => { document.exitFullscreen(); },  
- 107248: ($0) => { const canvasId = UTF8ToString($0); setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { document.querySelector(canvasId).style.width="unset"; }, 100); }, 100); },  
- 107442: () => { return window.innerWidth; },  
- 107468: () => { return window.innerHeight; },  
- 107495: () => { if (document.fullscreenElement) return 1; },  
- 107541: () => { return Module.canvas.width; },  
- 107573: () => { return parseInt(Module.canvas.style.width); },  
- 107621: () => { if (document.fullscreenElement) return 1; },  
- 107667: () => { return Module.canvas.width; },  
- 107699: () => { return screen.width; },  
- 107724: () => { return window.innerWidth; },  
- 107750: () => { return window.innerHeight; },  
- 107777: () => { if (document.fullscreenElement) return 1; },  
- 107823: () => { return Module.canvas.width; },  
- 107855: () => { return screen.width; },  
- 107880: () => { document.exitFullscreen(); },  
- 107907: () => { if (document.fullscreenElement) return 1; },  
- 107953: () => { return Module.canvas.width; },  
- 107985: () => { return parseInt(Module.canvas.style.width); },  
- 108033: () => { document.exitFullscreen(); },  
- 108060: ($0) => { Module.canvas.style.opacity = $0; },  
- 108098: () => { return screen.width; },  
- 108123: () => { return screen.height; },  
- 108149: () => { return window.screenX; },  
- 108176: () => { return window.screenY; },  
- 108203: () => { return window.devicePixelRatio; },  
- 108239: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
- 108292: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
- 108343: () => { Module.canvas.style.cursor = 'none'; },  
- 108380: ($0, $1, $2, $3) => { try { navigator.getGamepads()[$0].vibrationActuator.playEffect('dual-rumble', { startDelay: 0, duration: $3, weakMagnitude: $1, strongMagnitude: $2 }); } catch (e) { try { navigator.getGamepads()[$0].hapticActuators[0].pulse($2, $3); } catch (e) { } } },  
- 108636: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
- 108687: () => { if (document.pointerLockElement) return 1; },  
- 108734: () => { if (document.fullscreenElement) return 1; },  
- 108780: () => { return window.innerWidth; },  
- 108806: () => { return window.innerHeight; }
+  106968: ($0) => { var conteudo = UTF8ToString($0); downloadGrafo(conteudo); },  
+ 107030: () => { abrirSeletorArquivo(); },  
+ 107053: () => { if (document.fullscreenElement) return 1; },  
+ 107099: () => { return Module.canvas.width; },  
+ 107131: () => { return parseInt(Module.canvas.style.width); },  
+ 107179: () => { document.exitFullscreen(); },  
+ 107206: () => { setTimeout(function(){ Module.requestFullscreen(false, false); }, 100); },  
+ 107278: () => { if (document.fullscreenElement) return 1; },  
+ 107324: () => { return Module.canvas.width; },  
+ 107356: () => { return screen.width; },  
+ 107381: () => { document.exitFullscreen(); },  
+ 107408: ($0) => { const canvasId = UTF8ToString($0); setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { document.querySelector(canvasId).style.width="unset"; }, 100); }, 100); },  
+ 107602: () => { return window.innerWidth; },  
+ 107628: () => { return window.innerHeight; },  
+ 107655: () => { if (document.fullscreenElement) return 1; },  
+ 107701: () => { return Module.canvas.width; },  
+ 107733: () => { return parseInt(Module.canvas.style.width); },  
+ 107781: () => { if (document.fullscreenElement) return 1; },  
+ 107827: () => { return Module.canvas.width; },  
+ 107859: () => { return screen.width; },  
+ 107884: () => { return window.innerWidth; },  
+ 107910: () => { return window.innerHeight; },  
+ 107937: () => { if (document.fullscreenElement) return 1; },  
+ 107983: () => { return Module.canvas.width; },  
+ 108015: () => { return screen.width; },  
+ 108040: () => { document.exitFullscreen(); },  
+ 108067: () => { if (document.fullscreenElement) return 1; },  
+ 108113: () => { return Module.canvas.width; },  
+ 108145: () => { return parseInt(Module.canvas.style.width); },  
+ 108193: () => { document.exitFullscreen(); },  
+ 108220: ($0) => { Module.canvas.style.opacity = $0; },  
+ 108258: () => { return screen.width; },  
+ 108283: () => { return screen.height; },  
+ 108309: () => { return window.screenX; },  
+ 108336: () => { return window.screenY; },  
+ 108363: () => { return window.devicePixelRatio; },  
+ 108399: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
+ 108452: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
+ 108503: () => { Module.canvas.style.cursor = 'none'; },  
+ 108540: ($0, $1, $2, $3) => { try { navigator.getGamepads()[$0].vibrationActuator.playEffect('dual-rumble', { startDelay: 0, duration: $3, weakMagnitude: $1, strongMagnitude: $2 }); } catch (e) { try { navigator.getGamepads()[$0].hapticActuators[0].pulse($2, $3); } catch (e) { } } },  
+ 108796: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
+ 108847: () => { if (document.pointerLockElement) return 1; },  
+ 108894: () => { if (document.fullscreenElement) return 1; },  
+ 108940: () => { return window.innerWidth; },  
+ 108966: () => { return window.innerHeight; }
 };
 function SetCanvasIdJs(out,outSize) { var canvasId = "#" + Module.canvas.id; stringToUTF8(canvasId, out, outSize); }
 function __asyncjs__RequestClipboardData() { return Asyncify.handleAsync(async () => { if (navigator.clipboard && window.isSecureContext) { let items = await navigator.clipboard.read(); for (const item of items) { if (item.types.includes("text/plain")) { const blob = await item.getType("text/plain"); const text = await blob.text(); window._lastClipboardString = text; } else if (item.types.find(t => t.startsWith("image/"))) { const blob = await item.getType(item.types.find(t => t.startsWith("image/"))); const bitmap = await createImageBitmap(blob); const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height; const ctx = canvas.getContext('2d'); ctx.drawImage(bitmap, 0, 0); const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data; window._lastImgWidth = canvas.width; window._lastImgHeight = canvas.height; window._lastImgData = imgData; } } } else console.warn("Clipboard read() requires HTTPS/Localhost"); }); }

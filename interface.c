@@ -369,7 +369,7 @@ void desenha_roda_de_cor(ColorPicker roda)
         float angleNonRadianOffset = (angleOffset / (2.0f * PI)) * 360.0f;
 
         Color currentColor = ColorFromHSV(angleNonRadian, 1.0f, roda.hsv_value);
-        Color offsetColor = ColorFromHSV(angleNonRadian + angleNonRadianOffset, 1.0f, roda.hsv_value); 
+        Color offsetColor = ColorFromHSV(angleNonRadian + angleNonRadianOffset, 1.0f, roda.hsv_value);
 
         // RL_TRIANGLES expects three vertices per triangle
         rlColor4ub(currentColor.r, currentColor.g, currentColor.b, currentColor.a);
@@ -469,3 +469,38 @@ void atualiza_slider_rgb(MenuRGB *menu, Vector2 mousepoint)
         menu->slider_ativo = false;
 }
 
+void desenha_menu_ajuda(MenuAjuda menu)
+{
+    DrawCircle(menu.circle.x, menu.circle.y, menu.circle.radius, menu.circle.color);
+    DrawTexture(menu.icon, menu.circle.x - menu.icon.width / 2, menu.circle.y - menu.icon.height / 2, WHITE);
+
+    if(menu.aberto)
+    {
+        DrawRectangleRounded(menu.rect_menu, 0.1f, 2, (Color){50, 60, 90, 255});
+        DrawRectangleRoundedLines(menu.rect_menu, 0.1f, 2, (Color){100, 100, 100, 255});
+
+        for(int i = 0; i < menu.quantidade_ajuda; i++)
+        {
+            DrawText(menu.texto_ajuda[i], menu.rect_menu.x + 10, menu.rect_menu.y + 10 + i * 30, 20, WHITE);
+        }
+    }
+}
+
+MenuAjuda criar_help(const char *icon)
+{
+    MenuAjuda menu;
+
+    menu.quantidade_ajuda = 3;
+    menu.icon = LoadTexture(icon);
+    menu.texto_ajuda = (char **)malloc(sizeof(char *) * menu.quantidade_ajuda);
+
+    menu.texto_ajuda[0] = strdup("Use A para inserir uma aresta entre 2 vertices selecionados");
+    menu.texto_ajuda[1] = strdup("Use V para inserir um vertice");
+    menu.texto_ajuda[2] = strdup("Use DELETE para excluir um vertice ou aresta selecionada");
+
+    menu.circle = (Circle){GetScreenWidth() - 150, 50, 20, (Color){50, 60, 90, 255}};
+    menu.rect_menu = (Rectangle){GetScreenWidth() - 150 - 700, 80, 700, 30 * menu.quantidade_ajuda + 20};
+    menu.aberto = false;
+
+    return menu;
+}

@@ -98,12 +98,22 @@ typedef struct
     bool slider_ativo;
 } MenuRGB;
 
+typedef struct{
+    Texture2D icon;
+    Circle circle;
+    Rectangle rect_menu;
+    char **texto_ajuda;
+    int quantidade_ajuda;
+    bool aberto;
+} MenuAjuda;
+
 SandwichMenu criar_menu_sanduiche(char *icon, Vector2 pos, int radius);
 ThemeButton criar_menu_tema(Circle corpo, Texture2D dark, Texture2D light);
 MenuEdicao *criar_menu_edicao(char *titulo, char *label, Rectangle rect_menu, int limit_char);
 MenuBotoes *criar_menu_btn(Rectangle rect);
 Button create_button_rect(Rectangle rect, Color color, const char *text);
 MenuRGB criar_menu_rgb(Rectangle pos_menu);
+MenuAjuda criar_help(const char *icon);
 
 void drawButtonRec(Button *button, Rectangle rect, int font_size);
 void drawButton(Button *button, int font_size);
@@ -112,6 +122,7 @@ void desenha_menu_botoes(MenuBotoes *menu);
 void desenha_theme_button(ThemeButton btn);
 void desenha_menu_sanduiche(SandwichMenu menu);
 void desenha_menu_rgb(MenuRGB menu, Font font);
+void desenha_menu_ajuda(MenuAjuda menu);
 
 void add_button_menu(MenuBotoes *menu, Color color, char *label);
 void scroll_menu_botoes(MenuBotoes *menu);
@@ -121,3 +132,4 @@ void atualiza_cor_roda(MenuRGB *menu, Vector2 mousepoint);
 void atualiza_slider_rgb(MenuRGB *menu, Vector2 mousepoint);
 
 void desenha_roda_de_cor(ColorPicker roda);
+

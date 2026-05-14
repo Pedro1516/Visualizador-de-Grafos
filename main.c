@@ -1232,8 +1232,10 @@ int main()
     SandwichMenu btn_abrir_menu = criar_menu_sanduiche("docs/assets/menu_icon.png", (Vector2){GetScreenWidth() - 50, 50}, 20);
     ThemeButton btn_mudar_tema = criar_menu_tema((Circle){GetScreenWidth() - 100, 50, 20, (Color){50, 60, 90, 255}}, (Texture2D){0}, (Texture2D){0});
     MenuRGB menu_rgb_vertice = criar_menu_rgb((Rectangle){GetScreenWidth() / 2, GetScreenHeight() / 2, 650, 500});
+    MenuAjuda menu_ajuda = criar_help("docs/assets/help.png");
 
     Texture2D ze = LoadTexture("docs/assets/ze_do_grafo.png");
+
     btn_mudar_tema.light = LoadTexture("docs/assets/light_mode.png");
     btn_mudar_tema.dark = LoadTexture("docs/assets/dark_mode.png");
     Font font = LoadFont("docs/fonts/Oswald.ttf");
@@ -1566,6 +1568,10 @@ int main()
             menu_botoes->aberto = false;
         }
 
+        if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && CheckCollisionPointCircle(mousepoint, (Vector2){menu_ajuda.circle.x, menu_ajuda.circle.y}, menu_ajuda.circle.radius))
+            menu_ajuda.aberto = !menu_ajuda.aberto;
+        
+
         fechar_menu(menu_criacao_k_completo, mousepoint);
         fechar_menu(menu_edicao_aresta, mousepoint);
         fechar_menu_rgb(&menu_rgb_vertice, mousepoint);
@@ -1638,6 +1644,7 @@ int main()
 
         if (exibir_hud)
         {
+            desenha_menu_ajuda(menu_ajuda);
             desenha_menu_sanduiche(btn_abrir_menu);
             if (menu_botoes->aberto)
                 desenha_menu_botoes(menu_botoes);
