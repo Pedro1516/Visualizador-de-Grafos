@@ -17,8 +17,8 @@
   // Note: We use a typeof check here instead of optional chaining using
   // globalThis because older browsers might not have globalThis defined.
   var currentNodeVersion = typeof process !== 'undefined' && process.versions?.node ? humanReadableVersionToPacked(process.versions.node) : TARGET_NOT_SUPPORTED;
-  if (currentNodeVersion < 160000) {
-    throw new Error(`This emscripten-generated code requires node v${ packedVersionToHumanReadable(160000) } (detected v${packedVersionToHumanReadable(currentNodeVersion)})`);
+  if (currentNodeVersion < 180300) {
+    throw new Error(`This emscripten-generated code requires node v${ packedVersionToHumanReadable(180300) } (detected v${packedVersionToHumanReadable(currentNodeVersion)})`);
   }
 
   var userAgent = typeof navigator !== 'undefined' && navigator.userAgent;
@@ -71,7 +71,7 @@ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIR
 
 // --pre-jses are emitted after the Module integration code, so that they can
 // refer to Module (if they choose; they can also define Module)
-// include: /tmp/tmpj3yi2ceq.js
+// include: /tmp/tmpx7i0qv4x.js
 
   if (!Module['expectedDataFileDownloads']) Module['expectedDataFileDownloads'] = 0;
   Module['expectedDataFileDownloads']++;
@@ -206,21 +206,21 @@ Module['FS_createPath']("/docs", "fonts", true, true);
 
   })();
 
-// end include: /tmp/tmpj3yi2ceq.js
-// include: /tmp/tmp_lq5feqn.js
+// end include: /tmp/tmpx7i0qv4x.js
+// include: /tmp/tmpc05lker7.js
 
     // All the pre-js content up to here must remain later on, we need to run
     // it.
     if ((typeof ENVIRONMENT_IS_WASM_WORKER != 'undefined' && ENVIRONMENT_IS_WASM_WORKER) || (typeof ENVIRONMENT_IS_PTHREAD != 'undefined' && ENVIRONMENT_IS_PTHREAD) || (typeof ENVIRONMENT_IS_AUDIO_WORKLET != 'undefined' && ENVIRONMENT_IS_AUDIO_WORKLET)) Module['preRun'] = [];
     var necessaryPreJSTasks = Module['preRun'].slice();
-  // end include: /tmp/tmp_lq5feqn.js
-// include: /tmp/tmpc5ihf9pb.js
+  // end include: /tmp/tmpc05lker7.js
+// include: /tmp/tmpdirp9pea.js
 
     if (!Module['preRun']) throw 'Module.preRun should exist because file support used it; did a pre-js delete it?';
     necessaryPreJSTasks.forEach((task) => {
       if (Module['preRun'].indexOf(task) < 0) throw 'All preRun tasks that exist before user pre-js code should remain after; did you replace Module or modify Module.preRun?';
     });
-  // end include: /tmp/tmpc5ihf9pb.js
+  // end include: /tmp/tmpdirp9pea.js
 
 
 var arguments_ = [];
@@ -375,7 +375,7 @@ var NODEFS = 'NODEFS is no longer included by default; build with -lnodefs.js';
 // perform assertions in shell.js after we set up out() and err(), as otherwise
 // if an assertion fails it cannot print the message
 
-assert(!ENVIRONMENT_IS_SHELL, 'shell environment detected but not enabled at build time.  Add `shell` to `-sENVIRONMENT` to enable.');
+assert(!ENVIRONMENT_IS_SHELL, 'shell environment detected but not enabled at build time (add `shell` to `-sENVIRONMENT` to enable)');
 
 // end include: shell.js
 
@@ -471,6 +471,11 @@ function checkStackCookie() {
 }
 // end include: runtime_stack_check.js
 // include: runtime_exceptions.js
+// Base Emscripten EH error class
+class EmscriptenEH {}
+
+class EmscriptenSjLj extends EmscriptenEH {}
+
 // end include: runtime_exceptions.js
 // include: runtime_debug.js
 var runtimeDebug = true; // Switch to false at runtime to disable logging at the right times
@@ -598,31 +603,6 @@ function unexportedRuntimeSymbol(sym) {
 
 // end include: runtime_debug.js
 // Memory management
-var
-/** @type {!Int8Array} */
-  HEAP8,
-/** @type {!Uint8Array} */
-  HEAPU8,
-/** @type {!Int16Array} */
-  HEAP16,
-/** @type {!Uint16Array} */
-  HEAPU16,
-/** @type {!Int32Array} */
-  HEAP32,
-/** @type {!Uint32Array} */
-  HEAPU32,
-/** @type {!Float32Array} */
-  HEAPF32,
-/** @type {!Float64Array} */
-  HEAPF64;
-
-// BigInt64Array type is not correctly defined in closure
-var
-/** not-@type {!BigInt64Array} */
-  HEAP64,
-/* BigUint64Array type is not correctly defined in closure
-/** not-@type {!BigUint64Array} */
-  HEAPU64;
 
 var runtimeInitialized = false;
 
@@ -701,11 +681,13 @@ function postRun() {
   // End ATPOSTRUNS hooks
 }
 
-/** @param {string|number=} what */
+/**
+ * @param {string|number=} what
+ */
 function abort(what) {
   Module['onAbort']?.(what);
 
-  what = 'Aborted(' + what + ')';
+  what = `Aborted(${what})`;
   // TODO(sbc): Should we remove printing and leave it up to whoever
   // catches the exception?
   err(what);
@@ -915,6 +897,36 @@ async function createWasm() {
       }
     }
 
+  /** @type {!Int16Array} */
+  var HEAP16;
+
+  /** @type {!Int32Array} */
+  var HEAP32;
+
+  /** not-@type {!BigInt64Array} */
+  var HEAP64;
+
+  /** @type {!Int8Array} */
+  var HEAP8;
+
+  /** @type {!Float32Array} */
+  var HEAPF32;
+
+  /** @type {!Float64Array} */
+  var HEAPF64;
+
+  /** @type {!Uint16Array} */
+  var HEAPU16;
+
+  /** @type {!Uint32Array} */
+  var HEAPU32;
+
+  /** not-@type {!BigUint64Array} */
+  var HEAPU64;
+
+  /** @type {!Uint8Array} */
+  var HEAPU8;
+
   var callRuntimeCallbacks = (callbacks) => {
       while (callbacks.length > 0) {
         // Pass the module as the first argument.
@@ -1043,12 +1055,12 @@ async function createWasm() {
 
   var noExitRuntime = true;
 
-  var ptrToString = (ptr) => {
+  function ptrToString(ptr) {
       assert(typeof ptr === 'number', `ptrToString expects a number, got ${typeof ptr}`);
       // Convert to 32-bit unsigned value
       ptr >>>= 0;
       return '0x' + ptr.toString(16).padStart(8, '0');
-    };
+    }
 
 
   
@@ -1133,7 +1145,7 @@ async function createWasm() {
         if ((u0 & 0xF0) == 0xE0) {
           u0 = ((u0 & 15) << 12) | (u1 << 6) | u2;
         } else {
-          if ((u0 & 0xF8) != 0xF0) warnOnce('Invalid UTF-8 leading byte ' + ptrToString(u0) + ' encountered when deserializing a UTF-8 string in wasm memory to a JS string!');
+          if ((u0 & 0xF8) != 0xF0) warnOnce(`Invalid UTF-8 leading byte ${ptrToString(u0)} encountered when deserializing a UTF-8 string in wasm memory to a JS string!`);
           u0 = ((u0 & 7) << 18) | (u1 << 12) | (u2 << 6) | (heapOrArray[idx++] & 63);
         }
   
@@ -1235,12 +1247,9 @@ var initRandomFill = () => {
       return (view) => nodeCrypto.randomFillSync(view);
     }
 
-    return (view) => crypto.getRandomValues(view);
+    return (view) => (crypto.getRandomValues(view), 0);
   };
-var randomFill = (view) => {
-    // Lazily init on the first invocation.
-    (randomFill = initRandomFill())(view);
-  };
+var randomFill = (view) => (randomFill = initRandomFill())(view);
 
 
 
@@ -1351,7 +1360,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         heap[outIdx++] = 0x80 | (u & 63);
       } else {
         if (outIdx + 3 >= endIdx) break;
-        if (u > 0x10FFFF) warnOnce('Invalid Unicode code point ' + ptrToString(u) + ' encountered when serializing a JS string to a UTF-8 string in wasm memory! (Valid unicode code points should be in range 0-0x10FFFF).');
+        if (u > 0x10FFFF) warnOnce(`Invalid Unicode code point ${ptrToString(u)} encountered when serializing a JS string to a UTF-8 string in wasm memory! (Valid unicode code points should be in range 0-0x10FFFF).`);
         heap[outIdx++] = 0xF0 | (u >> 18);
         heap[outIdx++] = 0x80 | ((u >> 12) & 63);
         heap[outIdx++] = 0x80 | ((u >> 6) & 63);
@@ -1630,11 +1639,14 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         } else if (FS.isFile(node.mode)) {
           node.node_ops = MEMFS.ops_table.file.node;
           node.stream_ops = MEMFS.ops_table.file.stream;
-          node.usedBytes = 0; // The actual number of bytes used in the typed array, as opposed to contents.length which gives the whole capacity.
-          // When the byte data of the file is populated, this will point to either a typed array, or a normal JS array. Typed arrays are preferred
-          // for performance, and used by default. However, typed arrays are not resizable like normal JS arrays are, so there is a small disk size
-          // penalty involved for appending file writes that continuously grow a file similar to std::vector capacity vs used -scheme.
-          node.contents = null; 
+          // The actual number of bytes used in the typed array, as opposed to
+          // contents.length which gives the whole capacity.
+          node.usedBytes = 0;
+          // The byte data of the file is stored in a typed array.
+          // Note: typed arrays are not resizable like normal JS arrays are, so
+          // there is a small penalty involved for appending file writes that
+          // continuously grow a file similar to std::vector capacity vs used.
+          node.contents = MEMFS.emptyFileContents ??= new Uint8Array(0);
         } else if (FS.isLink(node.mode)) {
           node.node_ops = MEMFS.ops_table.link.node;
           node.stream_ops = MEMFS.ops_table.link.stream;
@@ -1651,36 +1663,30 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         return node;
       },
   getFileDataAsTypedArray(node) {
-        if (!node.contents) return new Uint8Array(0);
-        if (node.contents.subarray) return node.contents.subarray(0, node.usedBytes); // Make sure to not return excess unused bytes.
-        return new Uint8Array(node.contents);
+        assert(FS.isFile(node.mode), 'getFileDataAsTypedArray called on non-file');
+        return node.contents.subarray(0, node.usedBytes); // Make sure to not return excess unused bytes.
       },
   expandFileStorage(node, newCapacity) {
-        var prevCapacity = node.contents ? node.contents.length : 0;
+        var prevCapacity = node.contents.length;
         if (prevCapacity >= newCapacity) return; // No need to expand, the storage was already large enough.
-        // Don't expand strictly to the given requested limit if it's only a very small increase, but instead geometrically grow capacity.
-        // For small filesizes (<1MB), perform size*2 geometric increase, but for large sizes, do a much more conservative size*1.125 increase to
-        // avoid overshooting the allocation cap by a very large margin.
+        // Don't expand strictly to the given requested limit if it's only a very
+        // small increase, but instead geometrically grow capacity.
+        // For small filesizes (<1MB), perform size*2 geometric increase, but for
+        // large sizes, do a much more conservative size*1.125 increase to avoid
+        // overshooting the allocation cap by a very large margin.
         var CAPACITY_DOUBLING_MAX = 1024 * 1024;
         newCapacity = Math.max(newCapacity, (prevCapacity * (prevCapacity < CAPACITY_DOUBLING_MAX ? 2.0 : 1.125)) >>> 0);
-        if (prevCapacity != 0) newCapacity = Math.max(newCapacity, 256); // At minimum allocate 256b for each file when expanding.
-        var oldContents = node.contents;
+        if (prevCapacity) newCapacity = Math.max(newCapacity, 256); // At minimum allocate 256b for each file when expanding.
+        var oldContents = MEMFS.getFileDataAsTypedArray(node);
         node.contents = new Uint8Array(newCapacity); // Allocate new storage.
-        if (node.usedBytes > 0) node.contents.set(oldContents.subarray(0, node.usedBytes), 0); // Copy old data over to the new storage.
+        node.contents.set(oldContents);
       },
   resizeFileStorage(node, newSize) {
         if (node.usedBytes == newSize) return;
-        if (newSize == 0) {
-          node.contents = null; // Fully decommit when requesting a resize to zero.
-          node.usedBytes = 0;
-        } else {
-          var oldContents = node.contents;
-          node.contents = new Uint8Array(newSize); // Allocate new storage.
-          if (oldContents) {
-            node.contents.set(oldContents.subarray(0, Math.min(newSize, node.usedBytes))); // Copy old data over to the new storage.
-          }
-          node.usedBytes = newSize;
-        }
+        var oldContents = node.contents;
+        node.contents = new Uint8Array(newSize); // Allocate new storage.
+        node.contents.set(oldContents.subarray(0, Math.min(newSize, node.usedBytes))); // Copy old data over to the new storage.
+        node.usedBytes = newSize;
       },
   node_ops:{
   getattr(node) {
@@ -1780,16 +1786,11 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
           if (position >= stream.node.usedBytes) return 0;
           var size = Math.min(stream.node.usedBytes - position, length);
           assert(size >= 0);
-          if (size > 8 && contents.subarray) { // non-trivial, and typed array
-            buffer.set(contents.subarray(position, position + size), offset);
-          } else {
-            for (var i = 0; i < size; i++) buffer[offset + i] = contents[position + i];
-          }
+          buffer.set(contents.subarray(position, position + size), offset);
           return size;
         },
   write(stream, buffer, offset, length, position, canOwn) {
-          // The data buffer should be a typed array view
-          assert(!(buffer instanceof ArrayBuffer));
+          assert(buffer.subarray, 'FS.write expects a TypedArray');
           // If the buffer is located in main memory (HEAP), and if
           // memory can grow, we can't hold on to references of the
           // memory buffer, as they may get invalidated. That means we
@@ -1802,33 +1803,19 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
           var node = stream.node;
           node.mtime = node.ctime = Date.now();
   
-          if (buffer.subarray && (!node.contents || node.contents.subarray)) { // This write is from a typed array to a typed array?
-            if (canOwn) {
-              assert(position === 0, 'canOwn must imply no weird position inside the file');
-              node.contents = buffer.subarray(offset, offset + length);
-              node.usedBytes = length;
-              return length;
-            } else if (node.usedBytes === 0 && position === 0) { // If this is a simple first write to an empty file, do a fast set since we don't need to care about old data.
-              node.contents = buffer.slice(offset, offset + length);
-              node.usedBytes = length;
-              return length;
-            } else if (position + length <= node.usedBytes) { // Writing to an already allocated and used subrange of the file?
-              node.contents.set(buffer.subarray(offset, offset + length), position);
-              return length;
-            }
-          }
-  
-          // Appending to an existing file and we need to reallocate, or source data did not come as a typed array.
-          MEMFS.expandFileStorage(node, position+length);
-          if (node.contents.subarray && buffer.subarray) {
+          if (canOwn) {
+            assert(position === 0, 'canOwn must imply no weird position inside the file');
+            node.contents = buffer.subarray(offset, offset + length);
+            node.usedBytes = length;
+          } else if (node.usedBytes === 0 && position === 0) { // If this is a simple first write to an empty file, do a fast set since we don't need to care about old data.
+            node.contents = buffer.slice(offset, offset + length);
+            node.usedBytes = length;
+          } else {
+            MEMFS.expandFileStorage(node, position+length);
             // Use typed array write which is available.
             node.contents.set(buffer.subarray(offset, offset + length), position);
-          } else {
-            for (var i = 0; i < length; i++) {
-             node.contents[position + i] = buffer[offset + i]; // Or fall back to manual write if not.
-            }
+            node.usedBytes = Math.max(node.usedBytes, position + length);
           }
-          node.usedBytes = Math.max(node.usedBytes, position + length);
           return length;
         },
   llseek(stream, offset, whence) {
@@ -1853,7 +1840,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
           var allocated;
           var contents = stream.node.contents;
           // Only make a new copy when MAP_PRIVATE is specified.
-          if (!(flags & 2) && contents && contents.buffer === HEAP8.buffer) {
+          if (!(flags & 2) && contents.buffer === HEAP8.buffer) {
             // We can't emulate MAP_SHARED when the file is not backed by the
             // buffer we're mapping to (e.g. the HEAP buffer).
             allocated = false;
@@ -1887,6 +1874,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
   };
   
   var FS_modeStringToFlags = (str) => {
+      if (typeof str != 'string') return str;
       var flagModes = {
         'r': 0,
         'r+': 2,
@@ -1900,6 +1888,16 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         throw new Error(`Unknown file open mode: ${str}`);
       }
       return flags;
+    };
+  
+  var FS_fileDataToTypedArray = (data) => {
+      if (typeof data == 'string') {
+        data = intArrayFromString(data, true);
+      }
+      if (!data.subarray) {
+        data = new Uint8Array(data);
+      }
+      return data;
     };
   
   var FS_getMode = (canRead, canWrite) => {
@@ -2206,7 +2204,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
           path = FS.cwd() + '/' + path;
         }
   
-        // limit max consecutive symlinks to 40 (SYMLOOP_MAX).
+        // limit max consecutive symlinks to SYMLOOP_MAX.
         linkloop: for (var nlinks = 0; nlinks < 40; nlinks++) {
           // split the absolute path
           var parts = path.split('/').filter((p) => !!p);
@@ -2498,7 +2496,14 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         var arg = setattr ? stream : node;
         setattr ??= node.node_ops.setattr;
         FS.checkOpExists(setattr, 63)
-        setattr(arg, attr);
+        try {
+          setattr(arg, attr);
+        } catch (e) {
+          if (e instanceof RangeError) {
+            throw new FS.ErrnoError(22);
+          }
+          throw e;
+        }
       },
   chrdev_stream_ops:{
   open(stream) {
@@ -3024,7 +3029,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         if (path === "") {
           throw new FS.ErrnoError(44);
         }
-        flags = typeof flags == 'string' ? FS_modeStringToFlags(flags) : flags;
+        flags = FS_modeStringToFlags(flags);
         if ((flags & 64)) {
           mode = (mode & 4095) | 32768;
         } else {
@@ -3175,6 +3180,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
       },
   write(stream, buffer, offset, length, position, canOwn) {
         assert(offset >= 0);
+        assert(buffer.subarray, 'FS.write expects a TypedArray');
         if (length < 0 || position < 0) {
           throw new FS.ErrnoError(28);
         }
@@ -3260,14 +3266,8 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
   writeFile(path, data, opts = {}) {
         opts.flags = opts.flags || 577;
         var stream = FS.open(path, opts.flags, opts.mode);
-        if (typeof data == 'string') {
-          data = new Uint8Array(intArrayFromString(data, true));
-        }
-        if (ArrayBuffer.isView(data)) {
-          FS.write(stream, data, 0, data.byteLength, undefined, opts.canOwn);
-        } else {
-          abort('Unsupported data type');
-        }
+        data = FS_fileDataToTypedArray(data);
+        FS.write(stream, data, 0, data.byteLength, undefined, opts.canOwn);
         FS.close(stream);
       },
   cwd:() => FS.currentPath,
@@ -3492,11 +3492,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         var mode = FS_getMode(canRead, canWrite);
         var node = FS.create(path, mode);
         if (data) {
-          if (typeof data == 'string') {
-            var arr = new Array(data.length);
-            for (var i = 0, len = data.length; i < len; ++i) arr[i] = data.charCodeAt(i);
-            data = arr;
-          }
+          data = FS_fileDataToTypedArray(data);
           // make sure we can write to the file
           FS.chmod(node, mode | 146);
           var stream = FS.open(node, 577);
@@ -3731,27 +3727,10 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         node.stream_ops = stream_ops;
         return node;
       },
-  absolutePath() {
-        abort('FS.absolutePath has been removed; use PATH_FS.resolve instead');
-      },
-  createFolder() {
-        abort('FS.createFolder has been removed; use FS.mkdir instead');
-      },
-  createLink() {
-        abort('FS.createLink has been removed; use FS.symlink instead');
-      },
-  joinPath() {
-        abort('FS.joinPath has been removed; use PATH.join instead');
-      },
-  mmapAlloc() {
-        abort('FS.mmapAlloc has been replaced by the top level function mmapAlloc');
-      },
-  standardizePath() {
-        abort('FS.standardizePath has been removed; use PATH.normalize instead');
-      },
   };
   
   var SYSCALLS = {
+  currentUmask:18,
   calculateAt(dirfd, path, allowEmpty) {
         if (PATH.isAbs(path)) {
           return path;
@@ -3855,6 +3834,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
     return -e.errno;
   }
   }
+  
 
   var syscallGetVarargI = () => {
       assert(SYSCALLS.varargs != undefined);
@@ -3891,7 +3871,8 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
           return stream.flags;
         case 4: {
           var arg = syscallGetVarargI();
-          stream.flags |= arg;
+          var mask = 289792;
+          stream.flags = (stream.flags & ~mask) | (arg & mask);
           return 0;
         }
         case 12: {
@@ -3915,10 +3896,11 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
     return -e.errno;
   }
   }
+  
 
   
   var stringToUTF8 = (str, outPtr, maxBytesToWrite) => {
-      assert(typeof maxBytesToWrite == 'number', 'stringToUTF8(str, outPtr, maxBytesToWrite) is missing the third parameter that specifies the length of the output buffer!');
+      assert(typeof maxBytesToWrite == 'number', 'stringToUTF8 requires a third parameter that specifies the length of the output buffer');
       return stringToUTF8Array(str, HEAPU8, outPtr, maxBytesToWrite);
     };
   function ___syscall_getcwd(buf, size) {
@@ -3935,6 +3917,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
     return -e.errno;
   }
   }
+  
 
   
   function ___syscall_ioctl(fd, op, varargs) {
@@ -4032,6 +4015,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
     return -e.errno;
   }
   }
+  
 
   
   function ___syscall_openat(dirfd, path, flags, varargs) {
@@ -4041,12 +4025,16 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
       path = SYSCALLS.getStr(path);
       path = SYSCALLS.calculateAt(dirfd, path);
       var mode = varargs ? syscallGetVarargI() : 0;
+      if (flags & 64) {
+        mode &= ~SYSCALLS.currentUmask;
+      }
       return FS.open(path, flags, mode).fd;
     } catch (e) {
     if (typeof FS == 'undefined' || !(e.name === 'ErrnoError')) throw e;
     return -e.errno;
   }
   }
+  
 
   var __abort_js = () =>
       abort('native code called abort()');
@@ -4193,7 +4181,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
           argsList
         });
   
-        JSEvents.deferredCalls.sort((x,y) => x.precedence < y.precedence);
+        JSEvents.deferredCalls.sort((x,y) => x.precedence - y.precedence);
       },
   removeDeferredCalls(targetFunction) {
         JSEvents.deferredCalls = JSEvents.deferredCalls.filter((call) => call.targetFunction != targetFunction);
@@ -4328,7 +4316,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
       stringToUTF8(e.mapping, eventStruct + 1176, 64);
     };
   var _emscripten_get_gamepad_status = (index, gamepadState) => {
-      assert(JSEvents.lastGamepadState, 'emscripten_get_gamepad_status() can only be called after having first called emscripten_sample_gamepad_data() and that function has returned EMSCRIPTEN_RESULT_SUCCESS!');
+      assert(JSEvents.lastGamepadState, 'emscripten_get_gamepad_status() called before emscripten_sample_gamepad_data()');
       // INVALID_PARAM is returned on a Gamepad index that never was there.
       if (index < 0 || index >= JSEvents.lastGamepadState.length) return -5;
   
@@ -4344,7 +4332,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
 
 
   var _emscripten_get_num_gamepads = () => {
-      assert(JSEvents.lastGamepadState, 'emscripten_get_num_gamepads() can only be called after having first called emscripten_sample_gamepad_data() and that function has returned EMSCRIPTEN_RESULT_SUCCESS!');
+      assert(JSEvents.lastGamepadState, 'emscripten_get_num_gamepads() called before emscripten_sample_gamepad_data()');
       // N.B. Do not call emscripten_get_num_gamepads() unless having first called emscripten_sample_gamepad_data(), and that has returned EMSCRIPTEN_RESULT_SUCCESS.
       // Otherwise the following line will throw an exception.
       return JSEvents.lastGamepadState.length;
@@ -7129,16 +7117,8 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         var canvas = Browser.getCanvas();
         var rect = canvas.getBoundingClientRect();
   
-        // Neither .scrollX or .pageXOffset are defined in a spec, but
-        // we prefer .scrollX because it is currently in a spec draft.
-        // (see: http://www.w3.org/TR/2013/WD-cssom-view-20131217/)
-        var scrollX = ((typeof window.scrollX != 'undefined') ? window.scrollX : window.pageXOffset);
-        var scrollY = ((typeof window.scrollY != 'undefined') ? window.scrollY : window.pageYOffset);
-        // If this assert lands, it's likely because the browser doesn't support scrollX or pageXOffset
-        // and we have no viable fallback.
-        assert((typeof scrollX != 'undefined') && (typeof scrollY != 'undefined'), 'Unable to retrieve scroll position, mouse positions likely broken.');
-        var adjustedX = pageX - (scrollX + rect.left);
-        var adjustedY = pageY - (scrollY + rect.top);
+        var adjustedX = pageX - (window.scrollX + rect.left);
+        var adjustedY = pageY - (window.scrollY + rect.top);
   
         // the canvas might be CSS-scaled compared to its backbuffer;
         // SDL-using content will want mouse coordinates in terms
@@ -7293,6 +7273,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
     return e.errno;
   }
   }
+  
 
   /** @param {number=} offset */
   var doReadv = (stream, iov, iovcnt, offset) => {
@@ -7324,6 +7305,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
     return e.errno;
   }
   }
+  
 
   
   function _fd_seek(fd, offset, whence, newOffset) {
@@ -7332,7 +7314,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
   
   try {
   
-      if (isNaN(offset)) return 61;
+      if (isNaN(offset)) return 22;
       var stream = SYSCALLS.getStreamFromFD(fd);
       FS.llseek(stream, offset, whence);
       HEAP64[((newOffset)>>3)] = BigInt(stream.position);
@@ -7378,6 +7360,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
     return e.errno;
   }
   }
+  
 
   var _glActiveTexture = _emscripten_glActiveTexture;
 
@@ -7603,7 +7586,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
    * @param {boolean=} noSetTiming
    */
   var setMainLoop = (iterFunc, fps, simulateInfiniteLoop, arg, noSetTiming) => {
-      assert(!MainLoop.func, 'emscripten_set_main_loop: there can only be one main loop function at once: call emscripten_cancel_main_loop to cancel the previous one before setting a new one with different parameters.');
+      assert(!MainLoop.func, 'emscripten_set_main_loop: there can only be one main loop function at once')
       MainLoop.func = iterFunc;
       MainLoop.arg = arg;
   
@@ -8803,16 +8786,8 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         // in the coordinates.
         const rect = Browser.getCanvas().getBoundingClientRect();
   
-        // Neither .scrollX or .pageXOffset are defined in a spec, but
-        // we prefer .scrollX because it is currently in a spec draft.
-        // (see: http://www.w3.org/TR/2013/WD-cssom-view-20131217/)
-        var scrollX = ((typeof window.scrollX != 'undefined') ? window.scrollX : window.pageXOffset);
-        var scrollY = ((typeof window.scrollY != 'undefined') ? window.scrollY : window.pageYOffset);
-        // If this assert lands, it's likely because the browser doesn't support scrollX or pageXOffset
-        // and we have no viable fallback.
-        assert((typeof scrollX != 'undefined') && (typeof scrollY != 'undefined'), 'Unable to retrieve scroll position, mouse positions likely broken.');
-        var adjustedX = pageX - (scrollX + rect.left);
-        var adjustedY = pageY - (scrollY + rect.top);
+        var adjustedX = pageX - (window.scrollX + rect.left);
+        var adjustedY = pageY - (window.scrollY + rect.top);
   
         // getBoundingClientRect() returns dimension affected by CSS, so as a result:
         // - when CSS scaling is enabled, this will fix the mouse coordinates to match the width/height of the window
@@ -9192,8 +9167,8 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         }
       },
   whenDone() {
-        assert(Asyncify.currData, 'Tried to wait for an async operation when none is in progress.');
-        assert(!Asyncify.asyncPromiseHandlers, 'Cannot have multiple async operations in flight at once');
+        assert(Asyncify.currData, 'tried to wait for an async operation when none is in progress');
+        assert(!Asyncify.asyncPromiseHandlers, 'cannot have multiple async operations in flight at once');
         return new Promise((resolve, reject) => {
           Asyncify.asyncPromiseHandlers = { resolve, reject };
         });
@@ -9239,7 +9214,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         return callUserCallback(func);
       },
   handleSleep(startAsync) {
-        assert(Asyncify.state !== Asyncify.State.Disabled, 'Asyncify cannot be done during or after the runtime exits');
+        assert(Asyncify.state !== Asyncify.State.Disabled, 'handleSleep called after Asyncify was shut down');
         if (ABORT) return;
         if (Asyncify.state === Asyncify.State.Normal) {
           // Prepare to sleep. Call startAsync, and see what happens:
@@ -9263,7 +9238,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
             // as it might break later operations (we can rewind ok now, but if
             // we unwind again, we would unwind through the extra compiled code
             // too).
-            assert(!Asyncify.exportCallStack.length, 'Waking up (starting to rewind) must be done from JS, without compiled code on the stack.');
+            assert(!Asyncify.exportCallStack.length, 'waking up (starting to rewind) must be done from JS, without compiled code on the stack');
             Asyncify.state = Asyncify.State.Rewinding;
             runAndAbortIfError(() => _asyncify_start_rewind(Asyncify.currData));
             if (typeof MainLoop != 'undefined' && MainLoop.func) {
@@ -9337,7 +9312,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
 
   var getCFunc = (ident) => {
       var func = Module['_' + ident]; // closure exported function
-      assert(func, 'Cannot call unknown function ' + ident + ', make sure it is exported');
+      assert(func, `Cannot call unknown function ${ident}, make sure it is exported`);
       return func;
     };
   
@@ -9396,7 +9371,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
       var func = getCFunc(ident);
       var cArgs = [];
       var stack = 0;
-      assert(returnType !== 'array', 'Return type should not be "array".');
+      assert(returnType !== 'array', 'return type should not be "array"');
       if (args) {
         for (var i = 0; i < args.length; i++) {
           var converter = toC[argTypes[i]];
@@ -9433,7 +9408,7 @@ var stringToUTF8Array = (str, heap, outIdx, maxBytesToWrite) => {
         // This is a new async operation. The wasm is paused and has unwound its stack.
         // We need to return a Promise that resolves the return value
         // once the stack is rewound and execution finishes.
-        assert(asyncMode, 'The call to ' + ident + ' is running asynchronously. If this was intended, add the async option to the ccall/cwrap call.');
+        assert(asyncMode, `The call to ${ident} is running asynchronously. If this was intended, add the async option to the ccall/cwrap call.`);
         return Asyncify.whenDone().then(onDone);
       }
   
@@ -9618,6 +9593,8 @@ if (Module['wasmBinary']) wasmBinary = Module['wasmBinary'];
   'makePromiseCallback',
   'ExceptionInfo',
   'findMatchingCatch',
+  'incrementUncaughtExceptionCount',
+  'decrementUncaughtExceptionCount',
   'Browser_asyncPrepareDataCounter',
   'isLeapYear',
   'ydayFromDate',
@@ -9649,16 +9626,6 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'callMain',
   'abort',
   'wasmExports',
-  'HEAPF32',
-  'HEAPF64',
-  'HEAP8',
-  'HEAPU8',
-  'HEAP16',
-  'HEAPU16',
-  'HEAP32',
-  'HEAPU32',
-  'HEAP64',
-  'HEAPU64',
   'writeStackCookie',
   'checkStackCookie',
   'writeI53ToI64',
@@ -9667,6 +9634,16 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'INT53_MAX',
   'INT53_MIN',
   'bigintToI53Checked',
+  'HEAP8',
+  'HEAPU8',
+  'HEAP16',
+  'HEAPU16',
+  'HEAP32',
+  'HEAPU32',
+  'HEAPF32',
+  'HEAPF64',
+  'HEAP64',
+  'HEAPU64',
   'stackSave',
   'stackRestore',
   'stackAlloc',
@@ -9756,7 +9733,6 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'emClearImmediate',
   'promiseMap',
   'uncaughtExceptionCount',
-  'exceptionLast',
   'exceptionCaught',
   'Browser',
   'requestFullscreen',
@@ -9775,6 +9751,7 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'FS_createPreloadedFile',
   'FS_modeStringToFlags',
   'FS_getMode',
+  'FS_fileDataToTypedArray',
   'FS_stdin_getChar_buffer',
   'FS_stdin_getChar',
   'FS_readFile',
@@ -9882,12 +9859,6 @@ missingLibrarySymbols.forEach(missingLibrarySymbol)
   'FS_analyzePath',
   'FS_createFile',
   'FS_forceLoadFile',
-  'FS_absolutePath',
-  'FS_createFolder',
-  'FS_createLink',
-  'FS_joinPath',
-  'FS_mmapAlloc',
-  'FS_standardizePath',
   'MEMFS',
   'TTY',
   'PIPEFS',
@@ -9943,53 +9914,57 @@ function checkIncomingModuleAPI() {
   ignoredModuleProp('fetchSettings');
   ignoredModuleProp('logReadFiles');
   ignoredModuleProp('loadSplitModule');
+  ignoredModuleProp('onMalloc');
+  ignoredModuleProp('onRealloc');
+  ignoredModuleProp('onFree');
+  ignoredModuleProp('onSbrkGrow');
 }
 var ASM_CONSTS = {
-  106600: ($0) => { var conteudo = UTF8ToString($0); downloadGrafo(conteudo); },  
- 106662: () => { abrirSeletorArquivo(); },  
- 106685: () => { if (document.fullscreenElement) return 1; },  
- 106731: () => { return Module.canvas.width; },  
- 106763: () => { return parseInt(Module.canvas.style.width); },  
- 106811: () => { document.exitFullscreen(); },  
- 106838: () => { setTimeout(function(){ Module.requestFullscreen(false, false); }, 100); },  
- 106910: () => { if (document.fullscreenElement) return 1; },  
- 106956: () => { return Module.canvas.width; },  
- 106988: () => { return screen.width; },  
- 107013: () => { document.exitFullscreen(); },  
- 107040: ($0) => { const canvasId = UTF8ToString($0); setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { document.querySelector(canvasId).style.width="unset"; }, 100); }, 100); },  
- 107234: () => { return window.innerWidth; },  
- 107260: () => { return window.innerHeight; },  
- 107287: () => { if (document.fullscreenElement) return 1; },  
- 107333: () => { return Module.canvas.width; },  
- 107365: () => { return parseInt(Module.canvas.style.width); },  
- 107413: () => { if (document.fullscreenElement) return 1; },  
- 107459: () => { return Module.canvas.width; },  
- 107491: () => { return screen.width; },  
- 107516: () => { return window.innerWidth; },  
- 107542: () => { return window.innerHeight; },  
- 107569: () => { if (document.fullscreenElement) return 1; },  
- 107615: () => { return Module.canvas.width; },  
- 107647: () => { return screen.width; },  
- 107672: () => { document.exitFullscreen(); },  
- 107699: () => { if (document.fullscreenElement) return 1; },  
- 107745: () => { return Module.canvas.width; },  
- 107777: () => { return parseInt(Module.canvas.style.width); },  
- 107825: () => { document.exitFullscreen(); },  
- 107852: ($0) => { Module.canvas.style.opacity = $0; },  
- 107890: () => { return screen.width; },  
- 107915: () => { return screen.height; },  
- 107941: () => { return window.screenX; },  
- 107968: () => { return window.screenY; },  
- 107995: () => { return window.devicePixelRatio; },  
- 108031: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
- 108084: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
- 108135: () => { Module.canvas.style.cursor = 'none'; },  
- 108172: ($0, $1, $2, $3) => { try { navigator.getGamepads()[$0].vibrationActuator.playEffect('dual-rumble', { startDelay: 0, duration: $3, weakMagnitude: $1, strongMagnitude: $2 }); } catch (e) { try { navigator.getGamepads()[$0].hapticActuators[0].pulse($2, $3); } catch (e) { } } },  
- 108428: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
- 108479: () => { if (document.pointerLockElement) return 1; },  
- 108526: () => { if (document.fullscreenElement) return 1; },  
- 108572: () => { return window.innerWidth; },  
- 108598: () => { return window.innerHeight; }
+  106808: ($0) => { var conteudo = UTF8ToString($0); downloadGrafo(conteudo); },  
+ 106870: () => { abrirSeletorArquivo(); },  
+ 106893: () => { if (document.fullscreenElement) return 1; },  
+ 106939: () => { return Module.canvas.width; },  
+ 106971: () => { return parseInt(Module.canvas.style.width); },  
+ 107019: () => { document.exitFullscreen(); },  
+ 107046: () => { setTimeout(function(){ Module.requestFullscreen(false, false); }, 100); },  
+ 107118: () => { if (document.fullscreenElement) return 1; },  
+ 107164: () => { return Module.canvas.width; },  
+ 107196: () => { return screen.width; },  
+ 107221: () => { document.exitFullscreen(); },  
+ 107248: ($0) => { const canvasId = UTF8ToString($0); setTimeout(function() { Module.requestFullscreen(false, true); setTimeout(function() { document.querySelector(canvasId).style.width="unset"; }, 100); }, 100); },  
+ 107442: () => { return window.innerWidth; },  
+ 107468: () => { return window.innerHeight; },  
+ 107495: () => { if (document.fullscreenElement) return 1; },  
+ 107541: () => { return Module.canvas.width; },  
+ 107573: () => { return parseInt(Module.canvas.style.width); },  
+ 107621: () => { if (document.fullscreenElement) return 1; },  
+ 107667: () => { return Module.canvas.width; },  
+ 107699: () => { return screen.width; },  
+ 107724: () => { return window.innerWidth; },  
+ 107750: () => { return window.innerHeight; },  
+ 107777: () => { if (document.fullscreenElement) return 1; },  
+ 107823: () => { return Module.canvas.width; },  
+ 107855: () => { return screen.width; },  
+ 107880: () => { document.exitFullscreen(); },  
+ 107907: () => { if (document.fullscreenElement) return 1; },  
+ 107953: () => { return Module.canvas.width; },  
+ 107985: () => { return parseInt(Module.canvas.style.width); },  
+ 108033: () => { document.exitFullscreen(); },  
+ 108060: ($0) => { Module.canvas.style.opacity = $0; },  
+ 108098: () => { return screen.width; },  
+ 108123: () => { return screen.height; },  
+ 108149: () => { return window.screenX; },  
+ 108176: () => { return window.screenY; },  
+ 108203: () => { return window.devicePixelRatio; },  
+ 108239: ($0) => { navigator.clipboard.writeText(UTF8ToString($0)); },  
+ 108292: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
+ 108343: () => { Module.canvas.style.cursor = 'none'; },  
+ 108380: ($0, $1, $2, $3) => { try { navigator.getGamepads()[$0].vibrationActuator.playEffect('dual-rumble', { startDelay: 0, duration: $3, weakMagnitude: $1, strongMagnitude: $2 }); } catch (e) { try { navigator.getGamepads()[$0].hapticActuators[0].pulse($2, $3); } catch (e) { } } },  
+ 108636: ($0) => { Module.canvas.style.cursor = UTF8ToString($0); },  
+ 108687: () => { if (document.pointerLockElement) return 1; },  
+ 108734: () => { if (document.fullscreenElement) return 1; },  
+ 108780: () => { return window.innerWidth; },  
+ 108806: () => { return window.innerHeight; }
 };
 function SetCanvasIdJs(out,outSize) { var canvasId = "#" + Module.canvas.id; stringToUTF8(canvasId, out, outSize); }
 function __asyncjs__RequestClipboardData() { return Asyncify.handleAsync(async () => { if (navigator.clipboard && window.isSecureContext) { let items = await navigator.clipboard.read(); for (const item of items) { if (item.types.includes("text/plain")) { const blob = await item.getType("text/plain"); const text = await blob.text(); window._lastClipboardString = text; } else if (item.types.find(t => t.startsWith("image/"))) { const blob = await item.getType(item.types.find(t => t.startsWith("image/"))); const bitmap = await createImageBitmap(blob); const canvas = document.createElement('canvas'); canvas.width = bitmap.width; canvas.height = bitmap.height; const ctx = canvas.getContext('2d'); ctx.drawImage(bitmap, 0, 0); const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height).data; window._lastImgWidth = canvas.width; window._lastImgHeight = canvas.height; window._lastImgData = imgData; } } } else console.warn("Clipboard read() requires HTTPS/Localhost"); }); }

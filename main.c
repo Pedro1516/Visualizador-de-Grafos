@@ -4,7 +4,7 @@
 #include <raymath.h>
 #include <math.h>
 #include "interface.h"
-// #include <emscripten.h>
+#include <emscripten.h>
 #include <limits.h>
 
 typedef struct
@@ -43,6 +43,14 @@ typedef struct grafo
     int limit[2];    // memoria alocada para v e a. indice 0 para vertice e 1 para aresta
     int ponderado;
 } Grafo;
+
+typedef struct
+{
+    int *AGM;
+    float timer;
+    bool primeira_iteracao;
+    bool ativa;
+} AGMAnim;
 
 typedef struct
 {
@@ -398,6 +406,7 @@ void check_collision_vertex(Grafo *grafo, bool *moving_vertex, Vector2 mouseWorl
 
 int select_aresta(Grafo *grafo, Vector2 mousepoint, int *aresta_selec)
 {
+
     if (IsMouseButtonReleased(MOUSE_RIGHT_BUTTON))
     {
         for (int i = 0; i < grafo->quant_a; i++)
@@ -414,6 +423,13 @@ int select_aresta(Grafo *grafo, Vector2 mousepoint, int *aresta_selec)
                 else
                 {
                     *aresta_selec = i;
+
+                    if (grafo->arestas[*aresta_selec].cor.a == 0)
+                    {
+                        *aresta_selec = -1;
+                        return 0;
+                    }
+
                     return 1;
                 }
 
@@ -785,7 +801,7 @@ int limpar_animacao_bfs(BFSAnim *bfs, Grafo *grafo)
     return 1;
 }
 
-void limpar_animacao(Grafo *grafo, BFSAnim *bfs, DFSAnim *dfs, int *agm_anim)
+void limpar_animacao(Grafo *grafo, BFSAnim *bfs, DFSAnim *dfs, AGMAnim *agm_anim)
 {
     if (bfs->ativa)
         limpar_animacao_bfs(bfs, grafo);
@@ -793,7 +809,15 @@ void limpar_animacao(Grafo *grafo, BFSAnim *bfs, DFSAnim *dfs, int *agm_anim)
     if (dfs->ativa)
         limpar_animacao_dfs(dfs, grafo);
 
-    *agm_anim = 0;
+    if (agm_anim->ativa)
+    {
+        agm_anim->ativa = false;
+        free(agm_anim->AGM);
+        agm_anim->primeira_iteracao = true;
+        agm_anim->timer = 0;
+    }
+    agm_anim->AGM = NULL;
+
     for (int i = 0; i < grafo->quant_a; i++)
     {
         if (grafo->arestas[i].cor.r != 0 || grafo->arestas[i].cor.b != 0)
@@ -871,68 +895,68 @@ int existe_aresta(Grafo *grafo, int v1, int v2)
     return 0;
 }
 
-// void exportar_lista_adj(Grafo *grafo)
-// {
-//     int capacidade = 4096;
-//     int offset = 0;
-//     char *buffer = malloc(capacidade);
+void exportar_lista_adj(Grafo *grafo)
+{
+    int capacidade = 4096;
+    int offset = 0;
+    char *buffer = malloc(capacidade);
 
-// #define ENSURE(n)                             \
-//     while (offset + (n) >= capacidade)        \
-//     {                                         \
-//         capacidade *= 2;                      \
-//         buffer = realloc(buffer, capacidade); \
-//     }
+#define ENSURE(n)                             \
+    while (offset + (n) >= capacidade)        \
+    {                                         \
+        capacidade *= 2;                      \
+        buffer = realloc(buffer, capacidade); \
+    }
 
-//     ENSURE(64);
-//     offset += snprintf(buffer + offset, capacidade - offset,
-//                        "%d %d %d\n", grafo->quant_v, grafo->ponderado, grafo->direcionado);
+    ENSURE(64);
+    offset += snprintf(buffer + offset, capacidade - offset,
+                       "%d %d %d\n", grafo->quant_v, grafo->ponderado, grafo->direcionado);
 
-//     for (int i = 0; i < grafo->quant_v; i++)
-//     {
-//         Vertice *v = &grafo->vertices[i];
-//         int primeiro = 1;
+    for (int i = 0; i < grafo->quant_v; i++)
+    {
+        Vertice *v = &grafo->vertices[i];
+        int primeiro = 1;
 
-//         for (int j = 0; j < v->quant_a; j++)
-//         {
-//             int a_idx = v->arestas[j];
-//             Aresta *a = &grafo->arestas[a_idx];
+        for (int j = 0; j < v->quant_a; j++)
+        {
+            int a_idx = v->arestas[j];
+            Aresta *a = &grafo->arestas[a_idx];
 
-//             int outro;
-//             if (grafo->direcionado)
-//             {
-//                 if (a->vertice[0] != i)
-//                     continue;
-//                 outro = a->vertice[1];
-//             }
-//             else
-//             {
-//                 outro = (a->vertice[0] == i) ? a->vertice[1] : a->vertice[0];
-//             }
+            int outro;
+            if (grafo->direcionado)
+            {
+                if (a->vertice[0] != i)
+                    continue;
+                outro = a->vertice[1];
+            }
+            else
+            {
+                outro = (a->vertice[0] == i) ? a->vertice[1] : a->vertice[0];
+            }
 
-//             ENSURE(32);
-//             if (!primeiro)
-//                 offset += snprintf(buffer + offset, capacidade - offset, " ");
+            ENSURE(32);
+            if (!primeiro)
+                offset += snprintf(buffer + offset, capacidade - offset, " ");
 
-//             if (grafo->ponderado)
-//                 offset += snprintf(buffer + offset, capacidade - offset, "%d:%d", outro, a->peso);
-//             else
-//                 offset += snprintf(buffer + offset, capacidade - offset, "%d", outro);
+            if (grafo->ponderado)
+                offset += snprintf(buffer + offset, capacidade - offset, "%d:%d", outro, a->peso);
+            else
+                offset += snprintf(buffer + offset, capacidade - offset, "%d", outro);
 
-//             primeiro = 0;
-//         }
+            primeiro = 0;
+        }
 
-//         ENSURE(4);
-//         offset += snprintf(buffer + offset, capacidade - offset, "\n");
-//     }
+        ENSURE(4);
+        offset += snprintf(buffer + offset, capacidade - offset, "\n");
+    }
 
-//     EM_ASM({
-//         var conteudo = UTF8ToString($0);
-//         downloadGrafo(conteudo); }, buffer);
+    EM_ASM({
+        var conteudo = UTF8ToString($0);
+        downloadGrafo(conteudo); }, buffer);
 
-//     free(buffer);
-// #undef ENSURE
-// }
+    free(buffer);
+#undef ENSURE
+}
 
 void importar_lista_adj_str(Grafo *grafo, const char *conteudo)
 {
@@ -1070,7 +1094,7 @@ void constraste_vertice(Vertice *vertice)
 int *prim(Grafo *grafo, int vertice_inicial)
 {
     int quant_visitado = 0, outro;
-    int *agm = (int *)malloc(sizeof(int) * grafo->quant_v - 1);
+    int *agm = (int *)malloc(sizeof(int) * (grafo->quant_v - 1));
     int *vertices_visitados = (int *)calloc(grafo->quant_v, sizeof(int));
 
     vertices_visitados[vertice_inicial] = 1;
@@ -1130,7 +1154,7 @@ int *inicia_animacao_AGM(Grafo *grafo, int vertice_inicial)
     if (!grafo->ponderado)
     {
         printf("O grafo precisa ser ponderado para calcular a AGM\n");
-        return;
+        return NULL;
     }
 
     int *AGM;
@@ -1138,7 +1162,7 @@ int *inicia_animacao_AGM(Grafo *grafo, int vertice_inicial)
     if (!grafo->direcionado)
         AGM = prim(grafo, 0);
     else
-        return;
+        return NULL;
 
     for (size_t i = 0; i < grafo->quant_a; i++)
     {
@@ -1148,11 +1172,17 @@ int *inicia_animacao_AGM(Grafo *grafo, int vertice_inicial)
     return AGM;
 }
 
-bool passo_anim_AGM(Grafo *grafo, int *AGM, bool tema_atual)
+bool passo_anim_AGM(Grafo *grafo, AGMAnim *AGM, bool tema_atual)
 {
     static int index = 0;
+    if (AGM->primeira_iteracao)
+    {
+        index = 0;
+        AGM->primeira_iteracao = false;
+    }
+
     Color cor_agm = tema_atual ? (Color){0, 0, 0, 255} : (Color){255, 255, 255, 255};
-    grafo->arestas[AGM[index]].cor = cor_agm;
+    grafo->arestas[AGM->AGM[index]].cor = cor_agm;
     index++;
 
     return index >= grafo->quant_v - 1;
@@ -1169,9 +1199,12 @@ int main()
     bfs_anim.ativa = false;
     DFSAnim dfs_anim;
     dfs_anim.ativa = false;
-    bool animacao_agm = false;
-    float timer_anim_agm = 0;
-    int *AGM = NULL;
+
+    AGMAnim agm_anim = {
+        .ativa = false,
+        .AGM = NULL,
+        .timer = 0,
+        .primeira_iteracao = true};
 
     bool moving_vertex = false;
     bool moving_cam = false;
@@ -1223,7 +1256,9 @@ int main()
 
     while (!WindowShouldClose())
     {
-        timer_anim_agm += GetFrameTime();
+        if (agm_anim.ativa)
+            agm_anim.timer += GetFrameTime();
+
         Vector2 mousepoint = GetMousePosition();
         Vector2 mouseWorldPos = GetScreenToWorld2D(mousepoint, camera);
 
@@ -1278,14 +1313,14 @@ int main()
         {
             if (IsKeyPressed(KEY_V))
             {
-                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &animacao_agm);
+                limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &agm_anim);
                 add_vertice(grafo_global, mouseWorldPos.x, mouseWorldPos.y, GREEN);
             }
         }
 
         if (((onButtonClickScroll(&menu_botoes->list_btn[0], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto) || IsKeyPressed(KEY_DELETE)) && !moving_cam) // Excluir vertice ou aresta
         {
-            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &animacao_agm);
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &agm_anim);
             if (aresta_selecionada != -1)
             {
                 excluir_aresta(grafo_global, aresta_selecionada);
@@ -1301,7 +1336,7 @@ int main()
 
         if (onButtonClickScroll(&menu_botoes->list_btn[1], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto && aresta_selecionada != -1 && !moving_cam) // Editar peso
         {
-            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &animacao_agm);
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &agm_anim);
             menu_criacao_k_completo->ativa = false;
             menu_edicao_aresta->ativa = true;
             menu_edicao_aresta->rect_menu.x = GetScreenWidth() - 670;
@@ -1309,7 +1344,7 @@ int main()
 
         if (onButtonClickScroll(&menu_botoes->list_btn[2], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto && vertices_selecionados[0] != -1 && !moving_cam) // bfs
         {
-            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &animacao_agm);
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &agm_anim);
 
             iniciar_bfs(grafo_global, &bfs_anim, vertices_selecionados[0]);
             limpar_selecao(vertices_selecionados, &aresta_selecionada);
@@ -1317,7 +1352,7 @@ int main()
 
         if (onButtonClickScroll(&menu_botoes->list_btn[3], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto && vertices_selecionados[0] != -1 && !moving_cam) // dfs
         {
-            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &animacao_agm);
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &agm_anim);
 
             iniciar_dfs(grafo_global, &dfs_anim, vertices_selecionados[0]);
             limpar_selecao(vertices_selecionados, &aresta_selecionada);
@@ -1325,12 +1360,12 @@ int main()
 
         if (onButtonClickScroll(&menu_botoes->list_btn[4], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto && !moving_cam) // limpar animacao
         {
-            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &animacao_agm);
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &agm_anim);
         }
 
         if (onButtonClickScroll(&menu_botoes->list_btn[5], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto && !moving_cam) // gerar k completo
         {
-            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &animacao_agm);
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &agm_anim);
             menu_criacao_k_completo->ativa = true;
             menu_edicao_aresta->ativa = false;
             menu_criacao_k_completo->rect_menu.x = GetScreenWidth() - 850;
@@ -1338,7 +1373,7 @@ int main()
 
         if (((onButtonClickScroll(&menu_botoes->list_btn[6], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto) || IsKeyPressedRepeat(KEY_DELETE)) && !moving_cam) // excluir grafo_global
         {
-            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &animacao_agm);
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &agm_anim);
             int ponderado = grafo_global->ponderado;
             int direcionado = grafo_global->direcionado;
             destroy_grafo(grafo_global);
@@ -1348,7 +1383,7 @@ int main()
 
         if (((onButtonClickScroll(&menu_botoes->list_btn[7], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto) || IsKeyPressed(KEY_P)) && !moving_cam) // excluir grafo
         {
-            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &animacao_agm);
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &agm_anim);
             grafo_global->ponderado = !grafo_global->ponderado;
 
             if (grafo_global->ponderado)
@@ -1359,7 +1394,7 @@ int main()
 
         if (((onButtonClickScroll(&menu_botoes->list_btn[8], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && menu_botoes->aberto) || IsKeyPressed(KEY_O)) && !moving_cam) // excluir grafo
         {
-            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &animacao_agm);
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &agm_anim);
             unificar_arestas(grafo_global);
             grafo_global->direcionado = !grafo_global->direcionado;
 
@@ -1369,21 +1404,21 @@ int main()
                 strcpy(menu_botoes->list_btn[10].text, "Trocar Para Direcionado");
         }
 
-        // if (onButtonClickScroll(&menu_botoes->list_btn[9], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam && menu_botoes->aberto) // excluir grafo
-        // {
-        //     limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &animacao_agm);
-        //     limpar_selecao(vertices_selecionados, &aresta_selecionada);
+        if (onButtonClickScroll(&menu_botoes->list_btn[9], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam && menu_botoes->aberto) // excluir grafo
+        {
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &agm_anim);
+            limpar_selecao(vertices_selecionados, &aresta_selecionada);
 
-        //     EM_ASM(
-        //         abrirSeletorArquivo(););
-        // }
+            EM_ASM(
+                abrirSeletorArquivo(););
+        }
 
-        // if (onButtonClickScroll(&menu_botoes->list_btn[10], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam && menu_botoes->aberto) // excluir grafo
-        // {
-        //     limpar_selecao(vertices_selecionados, &aresta_selecionada);
-        //     limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &animacao_agm);
-        //     exportar_lista_adj(grafo_global);
-        // }
+        if (onButtonClickScroll(&menu_botoes->list_btn[10], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam && menu_botoes->aberto) // excluir grafo
+        {
+            limpar_selecao(vertices_selecionados, &aresta_selecionada);
+            limpar_animacao(grafo_global, &bfs_anim, &dfs_anim, &agm_anim);
+            exportar_lista_adj(grafo_global);
+        }
 
         if (onButtonClickScroll(&menu_botoes->list_btn[11], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam && menu_botoes->aberto) // excluir grafo
         {
@@ -1392,9 +1427,16 @@ int main()
 
         if (onButtonClickScroll(&menu_botoes->list_btn[12], mousepoint, menu_botoes->scrollY, menu_botoes->rect) && !moving_cam && menu_botoes->aberto) // excluir grafo
         {
-            AGM = inicia_animacao_AGM(grafo_global, 0);
-            animacao_agm = true;
-            timer_anim_agm = 0;
+            if (vertices_selecionados[0] != -1)
+            {
+                agm_anim.AGM = inicia_animacao_AGM(grafo_global, vertices_selecionados[0]);
+                if (agm_anim.AGM != NULL)
+                {
+                    agm_anim.ativa = true;
+                    agm_anim.primeira_iteracao = true;
+                    agm_anim.timer = 0;
+                }
+            }
         }
 
         if (IsKeyPressed(KEY_HOME))
@@ -1501,7 +1543,7 @@ int main()
                 if (vertices_selecionados[1] != -1)
                     constraste_vertice(&grafo_global->vertices[vertices_selecionados[1]]);
 
-                if (vertices_selecionados[0] = -1, vertices_selecionados[1] = -1)
+                if (vertices_selecionados[0] == -1 && vertices_selecionados[1] == -1)
                 {
                     for (size_t i = 0; i < grafo_global->quant_v; i++)
                     {
@@ -1570,10 +1612,10 @@ int main()
             atualiza_slider_rgb(&menu_rgb_vertice, mousepoint);
         }
 
-        if (timer_anim_agm > 0.5f && animacao_agm)
+        if (agm_anim.timer > 0.5f && agm_anim.ativa)
         {
-            animacao_agm = !passo_anim_AGM(grafo_global, AGM, btn_mudar_tema.theme);
-            timer_anim_agm = 0;
+            agm_anim.ativa = !passo_anim_AGM(grafo_global, &agm_anim, btn_mudar_tema.theme);
+            agm_anim.timer = 0;
         }
 
         BeginDrawing();
